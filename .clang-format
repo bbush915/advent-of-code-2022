@@ -1,0 +1,8 @@
+BasedOnStyle: LLVM
+
+AlignTrailingComments: false
+AllowShortFunctionsOnASingleLine: false
+BinPackParameters: false
+ColumnLimit: 100
+IndentCaseLabels: true
+IndentWidth: 4
