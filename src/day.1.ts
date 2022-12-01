@@ -1,8 +1,8 @@
-import fs from "fs";
+import * as fs from "fs";
 
 function parseInput() {
   return fs
-    .readFileSync("src/day.1.input.txt")
+    .readFileSync("./src/day.1.input.txt")
     .toString()
     .split("\n\n")
     .map((x) =>
