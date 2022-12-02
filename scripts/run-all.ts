@@ -6,7 +6,7 @@ const days = fs
   .map((x) => Number(x.split(".")[1]))
   .sort((x, y) => x - y);
 
-const start = new Date().getTime();
+const start = performance.now();
 
 for (const day of days) {
   const { part1, part2 } = require(`../src/day.${day}`);
@@ -22,12 +22,17 @@ for (const day of days) {
   console.info();
 }
 
-console.info(`Total: ${new Date().getTime() - start} ms`);
+console.info(
+  `Total: ${Math.round((performance.now() - start) * 1000) / 1000} ms`
+);
 
 function timePart(getResult: () => number | string) {
-  const start = new Date().getTime();
+  const start = performance.now();
 
   const result = getResult();
 
-  return { result, timeElapsed: new Date().getTime() - start };
+  return {
+    result,
+    timeElapsed: Math.round((performance.now() - start) * 1000) / 1000,
+  };
 }

@@ -88,8 +88,8 @@ function fromResult(opponent: Choices, result: Results): number {
   }
 
   if (result === Results.Loss) {
-    return ((opponent + 2) % 3) as Choices;
+    return (opponent + 2) % 3;
   }
 
-  return ((opponent + 1) % 3) as Choices;
+  return (opponent + 1) % 3;
 }

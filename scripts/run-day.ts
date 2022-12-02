@@ -30,9 +30,12 @@ if (part !== 1) {
 }
 
 function timePart(getResult: () => number | string) {
-  const start = new Date().getTime();
+  const start = performance.now();
 
   const result = getResult();
 
-  return { result, timeElapsed: new Date().getTime() - start };
+  return {
+    result,
+    timeElapsed: Math.round((performance.now() - start) * 1000) / 1000,
+  };
 }
