@@ -15,10 +15,10 @@ export function part1() {
   let totalScore = 0;
 
   for (const round of strategyGuide) {
-    const opponent = parseChoice(round[0])!;
-    const mine = parseChoice(round[1])!;
+    const opponent = ChoiceMap[round[0] as keyof typeof ChoiceMap];
+    const mine = ChoiceMap[round[1] as keyof typeof ChoiceMap];
 
-    totalScore += (mine as number) + 1 + (toResult(opponent, mine) as number);
+    totalScore += <number>mine + 1 + toResult(opponent, mine);
   }
 
   return totalScore;
@@ -30,12 +30,12 @@ export function part2() {
   let totalScore = 0;
 
   for (const round of strategyGuide) {
-    const opponent = parseChoice(round[0])!;
-    const result = parseResult(round[1])!;
+    const opponent = ChoiceMap[round[0] as keyof typeof ChoiceMap];
+    const result = ResultMap[round[1] as keyof typeof ResultMap];
 
     const mine = fromResult(opponent, result);
 
-    totalScore += (mine as number) + 1 + (result as number);
+    totalScore += mine + 1 + <number>result;
   }
 
   return totalScore;
@@ -47,71 +47,49 @@ enum Choices {
   Scissors = 2,
 }
 
+const ChoiceMap = {
+  A: Choices.Rock,
+  X: Choices.Rock,
+
+  B: Choices.Paper,
+  Y: Choices.Paper,
+
+  C: Choices.Scissors,
+  Z: Choices.Scissors,
+};
+
 enum Results {
   Loss = 0,
   Draw = 3,
   Win = 6,
 }
 
-function parseChoice(value: string): Choices | null {
-  switch (value) {
-    case "A":
-    case "X": {
-      return Choices.Rock;
-    }
+const ResultMap = {
+  X: Results.Loss,
+  Y: Results.Draw,
+  Z: Results.Win,
+};
 
-    case "B":
-    case "Y": {
-      return Choices.Paper;
-    }
-
-    case "C":
-    case "Z": {
-      return Choices.Scissors;
-    }
-  }
-
-  return null;
-}
-
-function parseResult(value: string) {
-  switch (value) {
-    case "X": {
-      return Results.Loss;
-    }
-
-    case "Y": {
-      return Results.Draw;
-    }
-
-    case "Z": {
-      return Results.Win;
-    }
-  }
-
-  return null;
-}
-
-function toResult(opponent: Choices, mine: Choices) {
+function toResult(opponent: Choices, mine: Choices): number {
   if (opponent === mine) {
     return Results.Draw;
   }
 
-  if (((opponent as number) + 1) % 3 === (mine as number)) {
+  if ((opponent + 1) % 3 === mine) {
     return Results.Win;
   }
 
   return Results.Loss;
 }
 
-function fromResult(opponent: Choices, result: Results) {
+function fromResult(opponent: Choices, result: Results): number {
   if (result === Results.Draw) {
     return opponent;
   }
 
   if (result === Results.Loss) {
-    return (((opponent as number) + 2) % 3) as Choices;
+    return ((opponent + 2) % 3) as Choices;
   }
 
-  return (((opponent as number) + 1) % 3) as Choices;
+  return ((opponent + 1) % 3) as Choices;
 }
