@@ -17,7 +17,7 @@ export function part1() {
   const elfCalories = parseInput();
 
   return elfCalories
-    .map((x) => x.reduce((sum, calories) => (sum += calories), 0))
+    .map((x) => x.reduce((sum, calories) => sum + calories, 0))
     .sort((x, y) => y - x)[0];
 }
 
@@ -25,8 +25,8 @@ export function part2() {
   const elfCalories = parseInput();
 
   return elfCalories
-    .map((x) => x.reduce((sum, calories) => (sum += calories), 0))
+    .map((x) => x.reduce((sum, calories) => sum + calories, 0))
     .sort((x, y) => y - x)
     .slice(0, 3)
-    .reduce((sum, totalCalories) => (sum += totalCalories), 0);
+    .reduce((sum, totalCalories) => sum + totalCalories, 0);
 }
