@@ -8,7 +8,7 @@ describe("Day 2", function () {
   });
 
   describe("Part 1", function () {
-    it("should calculate the same answer as the example", function () {
+    it("should calculate the correct answer for the example", function () {
       const input = fs.readFileSync("./src/day.2.example.txt");
       jest.spyOn(fs, "readFileSync").mockImplementation(() => input);
 
@@ -16,16 +16,26 @@ describe("Day 2", function () {
 
       expect(answer).toBe(15);
     });
+
+    it("should calculate the correct answer for the challenge", function () {
+      const answer = part1();
+      expect(answer).toBe(11063);
+    });
   });
 
   describe("Part 2", function () {
-    it("should calculate the same answer as the example", function () {
+    it("should calculate the correct answer for the example", function () {
       const input = fs.readFileSync("./src/day.2.example.txt");
       jest.spyOn(fs, "readFileSync").mockImplementation(() => input);
 
       const answer = part2();
 
       expect(answer).toBe(12);
+    });
+
+    it("should calculate the correct answer for the challenge", function () {
+      const answer = part2();
+      expect(answer).toBe(10349);
     });
   });
 });
