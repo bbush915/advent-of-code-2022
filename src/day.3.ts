@@ -36,14 +36,14 @@ export function part2() {
 
   let totalPriority = 0;
 
-  outer: for (let i = 0; i < rucksacks.length; i += 3) {
+  for (let i = 0; i < rucksacks.length; i += 3) {
     for (let j = 0; j < rucksacks[i].length; j++) {
       if (
         rucksacks[i + 1].includes(rucksacks[i][j]) &&
         rucksacks[i + 2].includes(rucksacks[i][j])
       ) {
         totalPriority += getPriority(rucksacks[i][j]);
-        continue outer;
+        break;
       }
     }
   }
