@@ -19,9 +19,9 @@ int main() {
 
     const int part_2_answer = part_2(p_file);
 
-    printf("Part 1: %d\nPart 2: %d\n", part_1_answer, part_2_answer);
-
     fclose(p_file);
+
+    printf("Part 1: %d\nPart 2: %d\n", part_1_answer, part_2_answer);
 
     return EXIT_SUCCESS;
 }
