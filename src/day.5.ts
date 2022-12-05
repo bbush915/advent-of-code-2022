@@ -1,63 +1,69 @@
 import fs from "fs";
 
+import { isNumeric } from "./utils/common";
+
 function parseInput() {
-  const [board, moves] = fs
-    .readFileSync("src/day.5.input.txt")
-    .toString()
-    .split("\n\n");
+  const parts = fs.readFileSync("src/day.5.input.txt").toString().split("\n\n");
 
-  const newBoard = board.split("\n").slice(0, 8);
-  console.log(newBoard);
+  const stacks = parts[0]
+    .split("\n")
+    .slice(0, -1)
+    .reverse()
+    .reduce((stacks, level) => {
+      const count = (level.length + 1) / 4;
 
-  const columns: string[][] = [[], [], [], [], [], [], [], [], []];
+      for (let j = 0; j < count; j++) {
+        const crate = level[4 * j + 1];
 
-  for (let i = 0; i < 8; i++) {
-    for (let j = 0; j < 9; j++) {
-      if (newBoard[7 - i][1 + 4 * j] !== " ") {
-        columns[j].push(newBoard[7 - i][1 + 4 * j]);
+        if (crate !== " ") {
+          (stacks[j] ??= []).push(crate);
+        }
       }
-    }
-  }
 
-  const newMoves = moves.split("\n").map((x) => {
-    const [, crate, , from, , to] = x.split(" ");
-    return [Number(crate), Number(from), Number(to)];
-  });
+      return stacks;
+    }, new Array<string[]>());
 
-  return { columns, move: newMoves };
+  const procedure = parts[1]
+    .split("\n")
+    .filter((x) => x)
+    .map((x) =>
+      x
+        .split(" ")
+        .filter((x) => isNumeric(x))
+        .map(Number)
+    );
+
+  return { stacks, procedure };
 }
 
 export function part1() {
-  const input = parseInput();
+  const { stacks, procedure } = parseInput();
 
-  for (let i = 0; i < input.move.length; i++) {
-    const move = input.move[i];
-
-    const crates: string[] = [];
-    for (var j = 0; j < move[0]; j++) {
-      const crate = input.columns[move[1] - 1].pop();
-      if (crate) {
-        crates.push(crate);
-      } else {
-        break;
-      }
-    }
-
-    console.log(crates);
-    var len = crates.length;
-    for (let j = 0; j < len; j++) {
-      input.columns[move[2] - 1].push(crates.pop()!);
-    }
+  for (const [count, from, to] of procedure) {
+    const crates = stacks[from - 1].splice(stacks[from - 1].length - count);
+    stacks[to - 1].push(...crates.reverse());
   }
 
-  let answer = "";
-  for (let i = 0; i < input.columns.length; i++) {
-    answer += input.columns[i].pop();
-  }
-
-  return answer;
+  return getStackTops(stacks);
 }
 
 export function part2() {
-  return 0;
+  const { stacks, procedure } = parseInput();
+
+  for (const [count, from, to] of procedure) {
+    const crates = stacks[from - 1].splice(stacks[from - 1].length - count);
+    stacks[to - 1].push(...crates);
+  }
+
+  return getStackTops(stacks);
+}
+
+function getStackTops(stacks: string[][]) {
+  let result = "";
+
+  for (const stack of stacks) {
+    result += stack[stack.length - 1];
+  }
+
+  return result;
 }

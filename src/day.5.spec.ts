@@ -14,12 +14,12 @@ describe("Day 5", function () {
 
       const answer = part1();
 
-      expect(answer).toBe(0);
+      expect(answer).toBe("CMZ");
     });
 
     it("should calculate the correct answer for the challenge", function () {
       const answer = part1();
-      expect(answer).toBe(0);
+      expect(answer).toBe("VGBBJCRMN");
     });
   });
 
@@ -30,12 +30,12 @@ describe("Day 5", function () {
 
       const answer = part2();
 
-      expect(answer).toBe(0);
+      expect(answer).toBe("MCD");
     });
 
     it("should calculate the correct answer for the challenge", function () {
       const answer = part2();
-      expect(answer).toBe(0);
+      expect(answer).toBe("LBBVJBRMH");
     });
   });
 });
