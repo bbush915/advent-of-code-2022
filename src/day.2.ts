@@ -1,4 +1,4 @@
-import * as fs from "fs";
+import fs from "fs";
 
 function parseInput() {
   return fs
@@ -12,33 +12,23 @@ function parseInput() {
 export function part1() {
   const strategyGuide = parseInput();
 
-  let totalScore = 0;
-
-  for (const round of strategyGuide) {
+  return strategyGuide.reduce((totalScore, round) => {
     const opponent = ChoiceMap[round[0] as keyof typeof ChoiceMap];
     const mine = ChoiceMap[round[1] as keyof typeof ChoiceMap];
 
-    totalScore += <number>mine + 1 + toResult(opponent, mine);
-  }
-
-  return totalScore;
+    return totalScore + <number>mine + 1 + toResult(opponent, mine);
+  }, 0);
 }
 
 export function part2() {
   const strategyGuide = parseInput();
 
-  let totalScore = 0;
-
-  for (const round of strategyGuide) {
+  return strategyGuide.reduce((totalScore, round) => {
     const opponent = ChoiceMap[round[0] as keyof typeof ChoiceMap];
     const result = ResultMap[round[1] as keyof typeof ResultMap];
 
-    const mine = fromResult(opponent, result);
-
-    totalScore += mine + 1 + <number>result;
-  }
-
-  return totalScore;
+    return totalScore + fromResult(opponent, result) + 1 + <number>result;
+  }, 0);
 }
 
 enum Choices {

@@ -1,4 +1,4 @@
-import * as fs from "fs";
+import fs from "fs";
 
 import { part1, part2 } from "./day.1";
 

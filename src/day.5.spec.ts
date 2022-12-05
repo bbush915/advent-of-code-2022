@@ -1,41 +1,41 @@
 import fs from "fs";
 
-import { part1, part2 } from "./day.2";
+import { part1, part2 } from "./day.5";
 
-describe("Day 2", function () {
+describe("Day 5", function () {
   afterEach(function () {
     jest.restoreAllMocks();
   });
 
   describe("Part 1", function () {
     it("should calculate the correct answer for the example", function () {
-      const input = fs.readFileSync("./src/day.2.example.txt");
+      const input = fs.readFileSync("./src/day.5.example.txt");
       jest.spyOn(fs, "readFileSync").mockImplementation(() => input);
 
       const answer = part1();
 
-      expect(answer).toBe(15);
+      expect(answer).toBe(0);
     });
 
     it("should calculate the correct answer for the challenge", function () {
       const answer = part1();
-      expect(answer).toBe(11063);
+      expect(answer).toBe(0);
     });
   });
 
   describe("Part 2", function () {
     it("should calculate the correct answer for the example", function () {
-      const input = fs.readFileSync("./src/day.2.example.txt");
+      const input = fs.readFileSync("./src/day.5.example.txt");
       jest.spyOn(fs, "readFileSync").mockImplementation(() => input);
 
       const answer = part2();
 
-      expect(answer).toBe(12);
+      expect(answer).toBe(0);
     });
 
     it("should calculate the correct answer for the challenge", function () {
       const answer = part2();
-      expect(answer).toBe(10349);
+      expect(answer).toBe(0);
     });
   });
 });

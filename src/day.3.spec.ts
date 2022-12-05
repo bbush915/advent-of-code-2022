@@ -1,8 +1,8 @@
-import * as fs from "fs";
+import fs from "fs";
 
 import { part1, part2 } from "./day.3";
 
-describe("Day 2", function () {
+describe("Day 3", function () {
   afterEach(function () {
     jest.restoreAllMocks();
   });

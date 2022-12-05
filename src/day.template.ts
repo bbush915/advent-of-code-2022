@@ -1,4 +1,4 @@
-import * as fs from "fs";
+import fs from "fs";
 
 function parseInput() {
   return fs
@@ -10,10 +10,9 @@ function parseInput() {
 }
 
 export function part1() {
-  const input = parseInput();
-  console.info(input);
-
   return 0;
 }
 
-export function part2() {}
+export function part2() {
+  return 0;
+}
