@@ -12,11 +12,11 @@ function parseInput() {
     .reduce((stacks, level) => {
       const count = (level.length + 1) / 4;
 
-      for (let j = 0; j < count; j++) {
-        const crate = level[4 * j + 1];
+      for (let i = 0; i < count; i++) {
+        const crate = level[4 * i + 1];
 
         if (crate !== " ") {
-          (stacks[j] ??= []).push(crate);
+          (stacks[i] ??= []).push(crate);
         }
       }
 
