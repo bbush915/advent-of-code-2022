@@ -5,26 +5,29 @@ function parseInput() {
 }
 
 export function part1() {
-  const input = parseInput();
-
-  const markers: string[] = [];
-
-  for (let i = 0; i < input.length; i++) {
-    console.log(i);
-    if (markers.length === 14 && new Set(markers).size === 14) {
-      return i;
-    }
-
-    if (markers.length === 14) {
-      markers.shift();
-    }
-
-    markers.push(input[i]);
-  }
-
-  return 0;
+  const stream = parseInput();
+  return getMarkerIndex(stream, 4);
 }
 
 export function part2() {
-  return 0;
+  const stream = parseInput();
+  return getMarkerIndex(stream, 14);
+}
+
+function getMarkerIndex(stream: string, size: number) {
+  const buffer: string[] = [];
+
+  for (let i = 0; i < stream.length; i++) {
+    if (new Set(buffer).size === size) {
+      return i;
+    }
+
+    if (buffer.length === size) {
+      buffer.shift();
+    }
+
+    buffer.push(stream[i]);
+  }
+
+  return -1;
 }
