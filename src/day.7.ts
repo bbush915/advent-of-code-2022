@@ -1,47 +1,47 @@
 import fs from "fs";
 
-import { isNumeric } from "./utils/common";
+interface Node {
+  parent: Node | null;
+  children: Record<string, number | Node>;
+}
 
 function parseInput() {
-  return fs
+  const output = fs
     .readFileSync("src/day.7.input.txt")
     .toString()
     .split("\n")
     .filter((x) => x)
     .map((x) => x.split(" "));
-}
 
-export function part1() {
-  const commands = parseInput();
+  const root: Node = { parent: null, children: {} };
+  let workingDirectory = root;
 
-  let root: any = { "/": { parent: null, children: {} } };
-  let workingDirectory: any;
-
-  for (let i = 0; i < commands.length; i++) {
-    switch (commands[i][1]) {
+  for (let i = 0; i < output.length; i++) {
+    switch (output[i][1]) {
       case "cd": {
-        if (commands[i][2] === "..") {
+        if (output[i][2] === "..") {
           if (workingDirectory.parent) {
             workingDirectory = workingDirectory.parent;
           }
-        } else if (commands[i][2] === "/") {
-          workingDirectory = root["/"];
+        } else if (output[i][2] === "/") {
+          workingDirectory = root;
         } else {
-          workingDirectory = workingDirectory.children[commands[i][2]];
+          workingDirectory = workingDirectory.children[output[i][2]] as Node;
         }
+
         break;
       }
 
       case "ls": {
-        while (i + 1 < commands.length && commands[i + 1][0] !== "$") {
-          if (commands[i + 1][0] === "dir") {
-            workingDirectory.children[commands[i + 1][1]] = {
+        while (i + 1 < output.length && output[i + 1][0] !== "$") {
+          if (output[i + 1][0] === "dir") {
+            workingDirectory.children[output[i + 1][1]] = {
               parent: workingDirectory,
               children: {},
             };
           } else {
-            workingDirectory.children[commands[i + 1][1]] = Number(
-              commands[i + 1][0]
+            workingDirectory.children[output[i + 1][1]] = Number(
+              output[i + 1][0]
             );
           }
 
@@ -54,86 +54,46 @@ export function part1() {
   }
 
   const directorySizes: Record<string, number> = {};
+  populateDirectorySizes(directorySizes, root, "/");
 
-  calculateSizes(directorySizes, root["/"], "/");
-
-  return Object.values(directorySizes)
-    .filter((x) => x < 100000)
-    .reduce((sum, size) => sum + size, 0);
+  return directorySizes;
 }
 
-function calculateSizes(
+function populateDirectorySizes(
   directorySizes: Record<string, number>,
-  sizeOrDirectory: any,
+  directoryOrSize: Node | number,
   name: string,
   path: string = ""
 ) {
-  if (isNumeric(sizeOrDirectory)) {
-    return sizeOrDirectory;
+  if (typeof directoryOrSize === "number") {
+    return directoryOrSize;
   }
 
-  const newPath = `${path}/${name}`;
+  const key = `${path}${name}`;
 
-  directorySizes[newPath] = Object.entries(sizeOrDirectory.children).reduce(
-    (size: number, child: any) =>
-      size + calculateSizes(directorySizes, child[1], child[0], newPath),
+  directorySizes[key] = Object.entries(directoryOrSize.children).reduce(
+    (size, child) =>
+      size + populateDirectorySizes(directorySizes, child[1], child[0], key),
     0
   );
 
-  return directorySizes[newPath];
+  return directorySizes[key];
+}
+
+export function part1() {
+  const directorySizes = parseInput();
+
+  return Object.values(directorySizes)
+    .filter((x) => x < 100000)
+    .reduce((totalSize, size) => totalSize + size, 0);
 }
 
 export function part2() {
-  const commands = parseInput();
+  const directorySizes = parseInput();
 
-  let root: any = { "/": { parent: null, children: {} } };
-  let workingDirectory: any;
-
-  for (let i = 0; i < commands.length; i++) {
-    switch (commands[i][1]) {
-      case "cd": {
-        if (commands[i][2] === "..") {
-          if (workingDirectory.parent) {
-            workingDirectory = workingDirectory.parent;
-          }
-        } else if (commands[i][2] === "/") {
-          workingDirectory = root["/"];
-        } else {
-          workingDirectory = workingDirectory.children[commands[i][2]];
-        }
-        break;
-      }
-
-      case "ls": {
-        while (i + 1 < commands.length && commands[i + 1][0] !== "$") {
-          if (commands[i + 1][0] === "dir") {
-            workingDirectory.children[commands[i + 1][1]] = {
-              parent: workingDirectory,
-              children: {},
-            };
-          } else {
-            workingDirectory.children[commands[i + 1][1]] = Number(
-              commands[i + 1][0]
-            );
-          }
-
-          i++;
-        }
-
-        break;
-      }
-    }
-  }
-
-  const directorySizes: Record<string, number> = {};
-
-  calculateSizes(directorySizes, root["/"], "/");
-  console.log(directorySizes);
-
-  const freeSpace = 70000000 - directorySizes["//"];
-  console.log(freeSpace);
+  const unusedSpace = 70000000 - directorySizes["/"];
 
   return Object.values(directorySizes)
-    .filter((x) => x > 30000000 - freeSpace)
+    .filter((x) => x > 30000000 - unusedSpace)
     .sort((x, y) => x - y)[0];
 }
