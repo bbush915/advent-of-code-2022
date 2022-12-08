@@ -37,6 +37,7 @@ export function part2() {
 
     for (let n = j + 1; n < trees[i].length; n++) {
       viewingDistanceToRight++;
+
       if (trees[i][n] >= trees[i][j]) {
         break;
       }
@@ -92,7 +93,7 @@ function getVisibleTrees(trees: number[][]) {
 
       let visibleFromRight = true;
 
-      for (let n = trees[i].length - 1; n > i; n--) {
+      for (let n = trees.length - 1; n > i; n--) {
         if (trees[n][j] >= trees[i][j]) {
           visibleFromRight = false;
           break;
