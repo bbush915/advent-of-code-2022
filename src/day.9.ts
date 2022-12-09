@@ -1,6 +1,10 @@
 import fs from "fs";
 
-function parseInput() {
+type Motion = { direction: "L" | "R" | "D" | "U"; count: number };
+
+type Position = { x: number; y: number };
+
+function parseInput(): Motion[] {
   return fs
     .readFileSync("src/day.9.input.txt")
     .toString()
@@ -8,142 +12,34 @@ function parseInput() {
     .filter((x) => x)
     .map((x) => {
       const parts = x.split(" ");
+
       return {
-        direction: parts[0],
+        direction: parts[0] as Motion["direction"],
         count: Number(parts[1]),
       };
     });
 }
 
 export function part1() {
-  const input = parseInput();
-
-  let head = { x: 0, y: 0 };
-  let tail = { x: 0, y: 0 };
-  const positions = new Set<string>(["0|0"]);
-
-  for (const { direction, count } of input) {
-    for (let i = 0; i < count; i++) {
-      switch (direction) {
-        case "L": {
-          head.x--;
-          if (needsMove(head, tail)) {
-            tail.x = head.x + 1;
-            if (head.y !== tail.y) {
-              tail.y = head.y;
-            }
-          }
-          break;
-        }
-        case "R": {
-          head.x++;
-          if (needsMove(head, tail)) {
-            tail.x = head.x - 1;
-            if (head.y !== tail.y) {
-              tail.y = head.y;
-            }
-          }
-          break;
-        }
-        case "U": {
-          head.y++;
-          if (needsMove(head, tail)) {
-            tail.y = head.y - 1;
-            if (head.x !== tail.x) {
-              tail.x = head.x;
-            }
-          }
-          break;
-        }
-        case "D": {
-          head.y--;
-          if (needsMove(head, tail)) {
-            tail.y = head.y + 1;
-            if (head.x !== tail.x) {
-              tail.x = head.x;
-            }
-          }
-          break;
-        }
-      }
-
-      positions.add(`${tail.x}|${tail.y}`);
-    }
-  }
-
-  return positions.size;
-}
-
-function needsMove(
-  head: { x: number; y: number },
-  tail: { x: number; y: number }
-) {
-  const xDist = Math.abs(head.x - tail.x);
-  const yDist = Math.abs(head.y - tail.y);
-
-  return !(xDist + yDist < 2 || (xDist === 1 && yDist === 1));
-}
-
-function move(
-  direction: "L" | "R" | "U" | "D",
-  head: { x: number; y: number },
-  tail: { x: number; y: number }
-) {
-  switch (direction) {
-    case "L": {
-      head.x--;
-      if (needsMove(head, tail)) {
-        tail.x = head.x + 1;
-        if (head.y !== tail.y) {
-          tail.y = head.y;
-        }
-      }
-      break;
-    }
-    case "R": {
-      head.x++;
-      if (needsMove(head, tail)) {
-        tail.x = head.x - 1;
-        if (head.y !== tail.y) {
-          tail.y = head.y;
-        }
-      }
-      break;
-    }
-    case "U": {
-      head.y++;
-      if (needsMove(head, tail)) {
-        tail.y = head.y - 1;
-        if (head.x !== tail.x) {
-          tail.x = head.x;
-        }
-      }
-      break;
-    }
-    case "D": {
-      head.y--;
-      if (needsMove(head, tail)) {
-        tail.y = head.y + 1;
-        if (head.x !== tail.x) {
-          tail.x = head.x;
-        }
-      }
-      break;
-    }
-  }
+  const motions = parseInput();
+  return getVisitedCount(motions, 2);
 }
 
 export function part2() {
-  const input = parseInput();
+  const motions = parseInput();
+  return getVisitedCount(motions, 10);
+}
 
-  const knots: { x: number; y: number }[] = [];
-  for (let i = 0; i < 10; i++) {
+function getVisitedCount(motions: Motion[], knotCount: number) {
+  const knots: Position[] = [];
+
+  for (let i = 0; i < knotCount; i++) {
     knots.push({ x: 0, y: 0 });
   }
 
-  const positions = new Set<string>(["0|0"]);
+  const visited = new Set<string>(["0|0"]);
 
-  for (const { direction, count } of input) {
+  for (const { direction, count } of motions) {
     for (let i = 0; i < count; i++) {
       switch (direction) {
         case "L": {
@@ -154,12 +50,12 @@ export function part2() {
           knots[0].x++;
           break;
         }
-        case "U": {
-          knots[0].y++;
-          break;
-        }
         case "D": {
           knots[0].y--;
+          break;
+        }
+        case "U": {
+          knots[0].y++;
           break;
         }
       }
@@ -168,7 +64,7 @@ export function part2() {
         const head = knots[j - 1];
         const tail = knots[j];
 
-        if (needsMove(head, tail)) {
+        if (requiresMove(head, tail)) {
           const dx = head.x - tail.x;
           const dy = head.y - tail.y;
 
@@ -177,11 +73,19 @@ export function part2() {
         }
       }
 
-      positions.add(
-        `${knots[knots.length - 1].x}|${knots[knots.length - 1].y}`
-      );
+      visited.add(`${knots[knots.length - 1].x}|${knots[knots.length - 1].y}`);
     }
   }
 
-  return positions.size;
+  return visited.size;
+}
+
+function requiresMove(
+  head: { x: number; y: number },
+  tail: { x: number; y: number }
+) {
+  const xDist = Math.abs(head.x - tail.x);
+  const yDist = Math.abs(head.y - tail.y);
+
+  return !(xDist + yDist < 2 || (xDist === 1 && yDist === 1));
 }
