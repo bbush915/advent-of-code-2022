@@ -1,6 +1,14 @@
 import fs from "fs";
 
-function parseInput() {
+type Instruction = { opcode: "noop" } | { opcode: "addx"; value: number };
+
+type Context = {
+  cycle: number;
+  x: number;
+  [key: string]: any;
+};
+
+function parseInput(): Instruction[] {
   return fs
     .readFileSync("src/day.10.input.txt")
     .toString()
@@ -8,66 +16,88 @@ function parseInput() {
     .filter((x) => x)
     .map((x) => {
       const parts = x.split(" ");
-      return { opcode: parts[0], value: parts[1] ? Number(parts[1]) : null };
+
+      if (parts[0] === "noop") {
+        return { opcode: "noop" };
+      }
+
+      return {
+        opcode: "addx",
+        value: Number(parts[1]),
+      };
     });
 }
 
 export function part1() {
-  const input = parseInput();
+  const program = parseInput();
 
-  let signalStrength = 0;
-  let x = 1;
-  let cycle = 1;
-  const crt: string[][] = [];
-  for (let i = 0; i < 6; i++) {
-    crt.push(new Array(40).fill("."));
+  const context: Context = {
+    cycle: 0,
+    x: 1,
+    totalSignalStrength: 0,
+  };
+
+  function executeCycle(context: Context) {
+    context.cycle++;
+
+    if ((context.cycle - 20) % 40 === 0) {
+      context.totalSignalStrength += context.cycle * context.x;
+    }
   }
 
-  for (const instruction of input) {
-    const row = Math.floor(((cycle - 1) % 240) / 40);
-    const col = (cycle - 1) % 40;
+  executeProgram(program, context, executeCycle);
 
-    if (Math.abs(x - col - 1) < 2) {
-      crt[row][col] = "#";
-    } else {
-      crt[row][col] = ".";
+  return context.totalSignalStrength;
+}
+
+export function part2() {
+  const program = parseInput();
+
+  const context: Context = {
+    cycle: 0,
+    x: 1,
+    crt: [],
+  };
+
+  for (let i = 0; i < 6; i++) {
+    context.crt.push(new Array(40).fill("."));
+  }
+
+  function executeCycle(context: Context) {
+    context.cycle++;
+
+    const row = Math.floor(((context.cycle - 1) % 240) / 40);
+    const column = (context.cycle - 1) % 40;
+
+    if (Math.abs(context.x - column) < 2) {
+      context.crt[row][column] = "#";
     }
+  }
 
+  executeProgram(program, context, executeCycle);
+
+  return `\n\n${context.crt.map((x: string[][]) => x.join("")).join("\n")}\n\n`;
+}
+
+function executeProgram(
+  program: Instruction[],
+  context: Context,
+  executeCycle: (context: Context) => void
+) {
+  for (const instruction of program) {
     switch (instruction.opcode) {
       case "noop": {
+        executeCycle(context);
         break;
       }
 
       case "addx": {
-        cycle++;
-        if ((cycle - 20) % 40 === 0) {
-          signalStrength += cycle * x;
-        }
-        x += instruction.value!;
+        executeCycle(context);
+        executeCycle(context);
 
-        const row = Math.floor(((cycle - 1) % 240) / 40);
-        const col = (cycle - 1) % 40;
-
-        if (Math.abs(x - col - 1) < 2) {
-          crt[row][col] = "#";
-        } else {
-          crt[row][col] = ".";
-        }
+        context.x += instruction.value;
         break;
       }
     }
-
-    cycle++;
-    if ((cycle - 20) % 40 === 0) {
-      signalStrength += cycle * x;
-    }
   }
-
-  console.log(crt.map((x) => x.join("")).join("\n"));
-
-  return signalStrength;
-}
-
-export function part2() {
-  return 0;
 }
