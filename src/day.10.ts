@@ -5,7 +5,6 @@ type Instruction = { opcode: "noop" } | { opcode: "addx"; value: number };
 type Context = {
   cycle: number;
   x: number;
-  [key: string]: any;
 };
 
 function parseInput(): Instruction[] {
@@ -31,13 +30,15 @@ function parseInput(): Instruction[] {
 export function part1() {
   const program = parseInput();
 
-  const context: Context = {
+  const context: Context & { totalSignalStrength: number } = {
     cycle: 0,
     x: 1,
     totalSignalStrength: 0,
   };
 
-  function executeCycle(context: Context) {
+  type TContext = typeof context;
+
+  function executeCycle(context: TContext) {
     context.cycle++;
 
     if ((context.cycle - 20) % 40 === 0) {
@@ -53,7 +54,7 @@ export function part1() {
 export function part2() {
   const program = parseInput();
 
-  const context: Context = {
+  const context: Context & { crt: string[][] } = {
     cycle: 0,
     x: 1,
     crt: [],
@@ -63,7 +64,9 @@ export function part2() {
     context.crt.push(new Array(40).fill("."));
   }
 
-  function executeCycle(context: Context) {
+  type TContext = typeof context;
+
+  function executeCycle(context: TContext) {
     context.cycle++;
 
     const row = Math.floor(((context.cycle - 1) % 240) / 40);
@@ -76,13 +79,13 @@ export function part2() {
 
   executeProgram(program, context, executeCycle);
 
-  return `\n\n${context.crt.map((x: string[][]) => x.join("")).join("\n")}\n\n`;
+  return `\n\n${context.crt.map((x) => x.join("")).join("\n")}\n\n`;
 }
 
-function executeProgram(
+function executeProgram<TContext extends Context>(
   program: Instruction[],
-  context: Context,
-  executeCycle: (context: Context) => void
+  context: TContext,
+  executeCycle: (context: TContext) => void
 ) {
   for (const instruction of program) {
     switch (instruction.opcode) {

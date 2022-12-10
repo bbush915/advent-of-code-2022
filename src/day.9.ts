@@ -80,9 +80,9 @@ function getVisitedCount(motions: Motion[], knotCount: number) {
   return visited.size;
 }
 
-function requiresMove(head: Position, tail: Position) {
-  const xDist = Math.abs(head.x - tail.x);
-  const yDist = Math.abs(head.y - tail.y);
+function requiresMove({ x: x0, y: y0 }: Position, { x: x1, y: y1 }: Position) {
+  const xDistance = Math.abs(x0 - x1);
+  const yDistance = Math.abs(y0 - y1);
 
-  return !(xDist + yDist < 2 || (xDist === 1 && yDist === 1));
+  return !(xDistance + yDistance < 2 || (xDistance === 1 && yDistance === 1));
 }

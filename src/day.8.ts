@@ -13,7 +13,7 @@ export function part1() {
   const trees = parseInput();
   const visibleTrees = getVisibleTrees(trees);
 
-  return visibleTrees.length + 4 * (trees.length - 1);
+  return 4 * (trees.length - 1) + visibleTrees.length;
 }
 
 export function part2() {

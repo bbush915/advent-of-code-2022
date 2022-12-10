@@ -8,6 +8,7 @@ function parseInput() {
     .filter((x) => x)
     .map((x) => {
       const [elf1, elf2] = x.split(",");
+
       return {
         assignment1: elf1.split("-").map(Number),
         assignment2: elf2.split("-").map(Number),
