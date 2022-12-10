@@ -8,8 +8,8 @@ describe("Day 5", function () {
   });
 
   describe("Part 1", function () {
-    it("should calculate the correct answer for the example", function () {
-      const input = fs.readFileSync("./src/day.5.example.txt");
+    it("should calculate the correct answer for the first example", function () {
+      const input = fs.readFileSync("./src/day.5.example.1.txt");
       jest.spyOn(fs, "readFileSync").mockImplementation(() => input);
 
       const answer = part1();
@@ -24,8 +24,8 @@ describe("Day 5", function () {
   });
 
   describe("Part 2", function () {
-    it("should calculate the correct answer for the example", function () {
-      const input = fs.readFileSync("./src/day.5.example.txt");
+    it("should calculate the correct answer for the first example", function () {
+      const input = fs.readFileSync("./src/day.5.example.1.txt");
       jest.spyOn(fs, "readFileSync").mockImplementation(() => input);
 
       const answer = part2();
