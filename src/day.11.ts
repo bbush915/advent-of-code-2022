@@ -26,7 +26,7 @@ function parseInput(): Monkey[] {
         .values();
 
       return {
-        id: Number(lines[0].match(/\d/)),
+        id: Number(lines[0].match(/\d/g)),
         items: lines[1]
           .slice("  Starting items: ".length)
           .split(",")
@@ -35,8 +35,8 @@ function parseInput(): Monkey[] {
         parameter1,
         parameter2,
         divisor: Number(lines[3].match(/\d+/g)),
-        ifTrue: Number(lines[4].match(/\d/)),
-        ifFalse: Number(lines[5].match(/\d/)),
+        ifTrue: Number(lines[4].match(/\d/g)),
+        ifFalse: Number(lines[5].match(/\d/g)),
         count: 0,
       };
     });
@@ -63,7 +63,7 @@ function getMonkeyBusinessLevel(
 
   for (let round = 0; round < rounds; round++) {
     for (const monkey of monkeys) {
-      const { items, divisor, ifTrue, ifFalse } = monkey;
+      const { items, operation, divisor, ifTrue, ifFalse } = monkey;
 
       monkey.count += items.length;
 
@@ -78,7 +78,7 @@ function getMonkeyBusinessLevel(
           (monkey.parameter2 === "old" ? item : Number(monkey.parameter2)) %
           modulus;
 
-        switch (monkey.operation) {
+        switch (operation) {
           case "+": {
             item = (parameter1 + parameter2) % modulus;
             break;
