@@ -1,6 +1,18 @@
 import fs from "fs";
 
-function parseInput() {
+type Monkey = {
+  id: number;
+  items: number[];
+  operation: "+" | "*";
+  parameter1: string;
+  parameter2: string;
+  divisor: number;
+  ifTrue: number;
+  ifFalse: number;
+  count: number;
+};
+
+function parseInput(): Monkey[] {
   return fs
     .readFileSync("src/day.11.input.txt")
     .toString()
@@ -9,71 +21,91 @@ function parseInput() {
     .map((x) => {
       const lines = x.split("\n");
 
+      const [, parameter1, operation, parameter2] = lines[2]
+        .match(/new = (old|\d+) (\+|\*) (old|\d+)/)!
+        .values();
+
       return {
-        num: Number(lines[0].split(" ")[1].slice(0, -1)),
-        items: lines[1].slice(18).split(",").map(Number),
-        operation: lines[2].split(" ")[6],
-        param1: lines[2].split(" ")[5],
-        param2: lines[2].split(" ")[7],
-        test: Number(lines[3].split(" ")[5]),
-        onTrue: Number(lines[4].slice(-2)),
-        onFalse: Number(lines[5].slice(-2)),
-        inspected: 0,
+        id: Number(lines[0].match(/\d/)),
+        items: lines[1]
+          .slice("  Starting items: ".length)
+          .split(",")
+          .map(Number),
+        operation: operation as Monkey["operation"],
+        parameter1,
+        parameter2,
+        divisor: Number(lines[3].match(/\d+/g)),
+        ifTrue: Number(lines[4].match(/\d/)),
+        ifFalse: Number(lines[5].match(/\d/)),
+        count: 0,
       };
     });
 }
 
 export function part1() {
-  const input = parseInput();
+  const monkeys = parseInput();
+  return getMonkeyBusinessLevel(monkeys, 20, true);
+}
 
-  const base = input.map((x) => x.test).reduce((prod, val) => prod * val);
+export function part2() {
+  const monkeys = parseInput();
+  return getMonkeyBusinessLevel(monkeys, 10000, false);
+}
 
-  for (let round = 0; round < 10000; round++) {
-    for (let i = 0; i < input.length; i++) {
-      while (input[i].items.length) {
-        let item = input[i].items.shift() as number;
+function getMonkeyBusinessLevel(
+  monkeys: Monkey[],
+  rounds: number,
+  doRelief: boolean
+) {
+  const modulus = monkeys
+    .map((x) => x.divisor)
+    .reduce((product, divisor) => product * divisor);
 
-        const param1 =
-          (input[i].param1 === "old" ? item : Number(input[i].param1)) % base;
-        const param2 =
-          (input[i].param2 === "old" ? item : Number(input[i].param2)) % base;
+  for (let round = 0; round < rounds; round++) {
+    for (const monkey of monkeys) {
+      const { items, divisor, ifTrue, ifFalse } = monkey;
 
-        switch (input[i].operation) {
+      monkey.count += items.length;
+
+      while (items.length) {
+        let item = items.shift()!;
+
+        const parameter1 =
+          (monkey.parameter1 === "old" ? item : Number(monkey.parameter1)) %
+          modulus;
+
+        const parameter2 =
+          (monkey.parameter2 === "old" ? item : Number(monkey.parameter2)) %
+          modulus;
+
+        switch (monkey.operation) {
           case "+": {
-            item = (param1 + param2) % base;
+            item = (parameter1 + parameter2) % modulus;
             break;
           }
 
           case "*": {
-            item = (param1 * param2) % base;
+            item = (parameter1 * parameter2) % modulus;
             break;
           }
         }
 
-        //        item = Math.floor(item / 3);
-
-        if (item % input[i].test === 0) {
-          input[input[i].onTrue].items.push(item);
-        } else {
-          input[input[i].onFalse].items.push(item);
+        if (doRelief) {
+          item = Math.floor(item / 3);
         }
 
-        input[i].inspected++;
+        if (item % divisor === 0) {
+          monkeys[ifTrue].items.push(item);
+        } else {
+          monkeys[ifFalse].items.push(item);
+        }
       }
-    }
-
-    if (round === 19) {
-      console.log(input);
     }
   }
 
-  return input
-    .map((x) => x.inspected)
+  return monkeys
+    .map((x) => x.count)
     .sort((x, y) => y - x)
     .slice(0, 2)
-    .reduce((sum, val) => sum * val);
-}
-
-export function part2() {
-  return 0;
+    .reduce((product, count) => product * count);
 }
