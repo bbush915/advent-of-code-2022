@@ -71,12 +71,10 @@ function getMonkeyBusinessLevel(
         let item = items.shift()!;
 
         const parameter1 =
-          (monkey.parameter1 === "old" ? item : Number(monkey.parameter1)) %
-          modulus;
+          monkey.parameter1 === "old" ? item : Number(monkey.parameter1);
 
         const parameter2 =
-          (monkey.parameter2 === "old" ? item : Number(monkey.parameter2)) %
-          modulus;
+          monkey.parameter2 === "old" ? item : Number(monkey.parameter2);
 
         switch (operation) {
           case "+": {
@@ -105,7 +103,7 @@ function getMonkeyBusinessLevel(
 
   return monkeys
     .map((x) => x.count)
-    .sort((x, y) => y - x)
-    .slice(0, 2)
+    .sort((x, y) => x - y)
+    .slice(-2)
     .reduce((product, count) => product * count);
 }
