@@ -26,17 +26,14 @@ function parseInput(): Monkey[] {
         .values();
 
       return {
-        id: Number(lines[0].match(/\d/g)),
-        items: lines[1]
-          .slice("  Starting items: ".length)
-          .split(",")
-          .map(Number),
+        id: Number(lines[0].match(/\d/)),
+        items: lines[1].match(/\d+/g)!.map(Number),
         operation: operation as Monkey["operation"],
         parameter1,
         parameter2,
-        divisor: Number(lines[3].match(/\d+/g)),
-        ifTrue: Number(lines[4].match(/\d/g)),
-        ifFalse: Number(lines[5].match(/\d/g)),
+        divisor: Number(lines[3].match(/\d+/)),
+        ifTrue: Number(lines[4].match(/\d/)),
+        ifFalse: Number(lines[5].match(/\d/)),
         count: 0,
       };
     });
