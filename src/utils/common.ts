@@ -23,10 +23,10 @@ export function isNumeric(value: any): boolean {
 /**
  * Memoizes a function
  *
- * @param {Function} func The function.
- * @return {Function} The memoized function.
+ * @param {any} func The function.
+ * @return {any} The memoized function.
  */
-export function memoize(func: Function): Function {
+export function memoize(func: any): any {
   const lookup = new Map<string, any>();
 
   return function () {
