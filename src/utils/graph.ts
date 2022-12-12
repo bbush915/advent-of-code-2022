@@ -1,7 +1,6 @@
 import { MinPriorityQueue } from "./data-structure";
 
 export type Graph = {
-  vertices: Record<string, Record<string, number>>;
   getNeighbors: (key: string) => string[];
   getDistance: (x: string, y: string) => number;
 };
