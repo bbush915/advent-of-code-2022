@@ -14,8 +14,8 @@ function parseInput() {
     .toString()
     .split("\n")
     .filter((x) => x)
-    .map((x, i) =>
-      x.split("").map((x, j) => {
+    .map((line, i) =>
+      line.split("").map((x, j) => {
         if (x === "S") {
           source = getKey(i, j);
           return LOWEST_ELEVATION;
