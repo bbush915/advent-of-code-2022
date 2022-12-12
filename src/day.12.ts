@@ -1,100 +1,126 @@
 import fs from "fs";
+
 import { dijkstra } from "./utils/graph";
 
+const LOWEST_ELEVATION = "a".charCodeAt(0);
+const HIGHEST_ELEVATION = "z".charCodeAt(0);
+
 function parseInput() {
-  return fs
+  let source: string;
+  let target: string;
+
+  const heightmap = fs
     .readFileSync("src/day.12.input.txt")
     .toString()
     .split("\n")
     .filter((x) => x)
-    .map((x) => x.split(""));
+    .map((x, i) =>
+      x.split("").map((x, j) => {
+        if (x === "S") {
+          source = getKey(i, j);
+          return LOWEST_ELEVATION;
+        }
+
+        if (x === "E") {
+          target = getKey(i, j);
+          return HIGHEST_ELEVATION;
+        }
+
+        return x.charCodeAt(0);
+      })
+    );
+
+  return {
+    heightmap,
+    source: source!,
+    target: target!,
+  };
 }
 
 export function part1() {
-  const input = parseInput();
+  const { heightmap, source, target } = parseInput();
 
-  let current: string = "";
-  let dest: string = "";
+  const result = dijkstra(
+    curryGetNeighbors(heightmap),
+    getDistance,
+    source,
+    target
+  );
 
-  for (let i = 0; i < input.length; i++) {
-    const startIdx = input[i].findIndex((x) => x == "S");
-    if (startIdx !== -1) {
-      current = `${i}|${startIdx}`;
-      input[i][startIdx] = "a";
-    }
+  return result.distanceLookup.get(target);
+}
 
-    const destIdx = input[i].findIndex((x) => x == "E");
-    if (destIdx !== -1) {
-      dest = `${i}|${destIdx}`;
-      input[i][destIdx] = "z";
-    }
-  }
+export function part2() {
+  const { heightmap, target } = parseInput();
 
-  function getNeighbors(key: string) {
-    const [i, j] = key.split("|").map(Number);
+  let fewestSteps = Number.POSITIVE_INFINITY;
 
-    const neighbors: string[] = [];
-
-    if (
-      i > 0 &&
-      input[i - 1][j].charCodeAt(0) <= input[i][j].charCodeAt(0) + 1
-    ) {
-      neighbors.push(`${i - 1}|${j}`);
-    }
-
-    if (
-      j > 0 &&
-      input[i][j - 1].charCodeAt(0) <= input[i][j].charCodeAt(0) + 1
-    ) {
-      neighbors.push(`${i}|${j - 1}`);
-    }
-
-    if (
-      j < input[i].length - 1 &&
-      input[i][j + 1].charCodeAt(0) <= input[i][j].charCodeAt(0) + 1
-    ) {
-      neighbors.push(`${i}|${j + 1}`);
-    }
-
-    if (
-      i < input.length - 1 &&
-      input[i + 1][j].charCodeAt(0) <= input[i][j].charCodeAt(0) + 1
-    ) {
-      neighbors.push(`${i + 1}|${j}`);
-    }
-
-    return neighbors;
-  }
-
-  function getDistance(x: string, y: string) {
-    return 1;
-  }
-
-  let lowest = 100000;
-  for (let i = 0; i < input.length; i++) {
-    for (let j = 0; j < input[i].length; j++) {
-      if (input[i][j] === "a") {
+  for (let i = 0; i < heightmap.length; i++) {
+    for (let j = 0; j < heightmap[i].length; j++) {
+      if (heightmap[i][j] === LOWEST_ELEVATION) {
         const result = dijkstra(
-          { getNeighbors, getDistance },
-          `${i}|${j}`,
-          dest
+          curryGetNeighbors(heightmap),
+          getDistance,
+          getKey(i, j),
+          target
         );
 
-        const dist = result.distanceLookup.get(dest);
-        console.log(dist);
+        const steps = result.distanceLookup.get(target);
 
-        if (dist < lowest) {
-          lowest = dist;
+        if (steps < fewestSteps) {
+          fewestSteps = steps;
         }
       }
     }
   }
 
-  return lowest;
-
-  //return result.distanceLookup.get(dest);
+  return fewestSteps;
 }
 
-export function part2() {
-  return 0;
+function getKey(i: number, j: number) {
+  return `${i}|${j}`;
+}
+
+function curryGetNeighbors(heightmap: number[][]) {
+  return function getNeighbors(key: string) {
+    const [i, j] = key.split("|").map(Number);
+
+    const neighbors: string[] = [];
+
+    // NOTE - Left
+
+    if (j > 0 && heightmap[i][j - 1] <= heightmap[i][j] + 1) {
+      neighbors.push(getKey(i, j - 1));
+    }
+
+    // NOTE - Right
+
+    if (
+      j < heightmap[i].length - 1 &&
+      heightmap[i][j + 1] <= heightmap[i][j] + 1
+    ) {
+      neighbors.push(getKey(i, j + 1));
+    }
+
+    // NOTE - Up
+
+    if (i > 0 && heightmap[i - 1][j] <= heightmap[i][j] + 1) {
+      neighbors.push(getKey(i - 1, j));
+    }
+
+    // NOTE - Down
+
+    if (
+      i < heightmap.length - 1 &&
+      heightmap[i + 1][j] <= heightmap[i][j] + 1
+    ) {
+      neighbors.push(getKey(i + 1, j));
+    }
+
+    return neighbors;
+  };
+}
+
+function getDistance(_x: string, _y: string) {
+  return 1;
 }

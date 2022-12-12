@@ -1,10 +1,10 @@
-import { dijkstra, Graph } from "./graph";
+import { dijkstra } from "./graph";
 
 describe("utils", function () {
   describe("graph", function () {
     describe("dijkstra", function () {
       it("correctly computes the shortest path", function () {
-        const vertices: Graph["vertices"] = {
+        const vertices: Record<string, Record<string, number>> = {
           "0": { "1": 4, "7": 8 },
           "1": { "0": 4, "2": 8, "7": 11 },
           "2": { "1": 8, "3": 7, "5": 4, "8": 2 },
@@ -16,22 +16,18 @@ describe("utils", function () {
           "8": { "2": 2, "6": 6, "7": 7 },
         };
 
-        const graph: Graph = {
-          vertices,
+        function getNeighbors(key: string) {
+          return Object.keys(vertices[key]);
+        }
 
-          getNeighbors(key) {
-            return Object.keys(vertices[key]);
-          },
-
-          getDistance(x, y) {
-            return vertices[x][y];
-          },
-        };
+        function getDistance(x: string, y: string) {
+          return vertices[x][y];
+        }
 
         const source = "0";
         const target = "8";
 
-        const result = dijkstra(graph, source, target);
+        const result = dijkstra(getNeighbors, getDistance, source, target);
 
         expect(result.distanceLookup.get("8")).toBe(14);
       });

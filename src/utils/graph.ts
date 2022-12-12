@@ -1,12 +1,8 @@
 import { MinPriorityQueue } from "./data-structure";
 
-export type Graph = {
-  getNeighbors: (key: string) => string[];
-  getDistance: (x: string, y: string) => number;
-};
-
 export function dijkstra(
-  { getNeighbors, getDistance }: Graph,
+  getNeighbors: (key: string) => string[],
+  getDistance: (x: string, y: string) => number,
   source: string,
   target: string
 ) {
