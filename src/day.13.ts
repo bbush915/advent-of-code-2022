@@ -1,85 +1,69 @@
 import fs from "fs";
-import { isNumeric } from "./utils/common";
 
-function parseInput() {
+import { isArray } from "./utils/common";
+
+type Packet = Array<number | Packet>;
+
+function parseInput(): Packet[][] {
   return fs
     .readFileSync("src/day.13.input.txt")
     .toString()
     .split("\n\n")
-    .map((x) => {
-      return x
+    .map((x) =>
+      x
         .split("\n")
         .filter((x) => x)
-        .map((x) => JSON.parse(x));
-    });
+        .map((x) => JSON.parse(x))
+    );
 }
 
 export function part1() {
-  const input = parseInput();
+  const distressSignal = parseInput();
 
-  let sum = 0;
-
-  for (let n = 0; n < input.length; n++) {
-    let [left, right] = input[n];
-    if (compareItems(left, right)) {
-      sum += n + 1;
-    }
-  }
-
-  return sum;
-}
-
-function compareItems(x: any, y: any): boolean | null {
-  if (!Array.isArray(x) && !Array.isArray(y)) {
-    return x < y ? true : x > y ? false : null;
-  } else if (Array.isArray(x) && Array.isArray(y)) {
-    let result: boolean | null = null;
-
-    for (let i = 0; i < Math.max(x.length, y.length); i++) {
-      if (x[i] === undefined) {
-        return true;
-      }
-
-      if (y[i] === undefined) {
-        return false;
-      }
-
-      result = compareItems(x[i], y[i]);
-
-      if (result !== null) {
-        return result;
-      }
-    }
-  } else {
-    if (!Array.isArray(x)) {
-      return compareItems([x], y);
-    } else {
-      return compareItems(x, [y]);
-    }
-  }
-
-  return null;
+  return distressSignal
+    .map(([left, right], i) => (compareValues(left, right) < 0 ? i + 1 : 0))
+    .reduce((sum, index) => sum + index, 0);
 }
 
 export function part2() {
-  const input = parseInput();
+  const packets = [...parseInput().flat(), [[2]], [[6]]];
+  const sortedPackets = packets.sort(compareValues);
 
-  const fullInput = input.flat();
-  fullInput.push([[2]], [[6]]);
+  return (
+    (sortedPackets.findIndex((x) => x[0] == 2) + 1) *
+    (sortedPackets.findIndex((x) => x[0] == 6) + 1)
+  );
+}
 
-  fullInput.sort((x, y) => {
-    const result = compareItems(x, y);
+function compareValues(left: number | Packet, right: number | Packet) {
+  let comparison = 0;
 
-    if (result === true) {
-      return -1;
-    } else if (result === false) {
-      return 1;
+  if (isArray(left) && isArray(right)) {
+    const left_ = left as Packet;
+    const right_ = right as Packet;
+
+    for (let i = 0; i < Math.max(left_.length, right_.length); i++) {
+      if (left_[i] === undefined) {
+        return -1;
+      }
+
+      if (right_[i] === undefined) {
+        return 1;
+      }
+
+      comparison = compareValues(left_[i], right_[i]);
+
+      if (comparison !== 0) {
+        break;
+      }
     }
+  } else if (!isArray(left) && !isArray(right)) {
+    comparison = left < right ? -1 : left > right ? 1 : 0;
+  } else {
+    comparison = isArray(left)
+      ? compareValues(left, [right])
+      : compareValues([left], right);
+  }
 
-    return 0;
-  });
-  const idx1 = fullInput.findIndex((x) => x[0] == 2) + 1;
-  const idx2 = fullInput.findIndex((x) => x[0] == 6) + 1;
-
-  return idx1 * idx2;
+  return comparison;
 }

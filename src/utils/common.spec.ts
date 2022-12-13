@@ -21,6 +21,14 @@ describe("utils", function () {
       it("should handle a number", function () {
         expect(isNumeric(3)).toBeTruthy();
       });
+
+      it("should handle an array of size 1", function () {
+        expect(isNumeric([3])).toBeFalsy();
+      });
+
+      it("should handle an array of size 2", function () {
+        expect(isNumeric([3, 4])).toBeFalsy();
+      });
     });
   });
 });

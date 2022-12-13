@@ -16,8 +16,22 @@ export function clone<T>(obj: T): T {
  * @return {boolean} A value indicating whether the value is numeric.
  */
 export function isNumeric(value: any): boolean {
+  if (Array.isArray(value)) {
+    return false;
+  }
+
   value = "" + value;
   return !isNaN(value) && !isNaN(parseFloat(value));
+}
+
+/**
+ * Determines whether the given value is an array.
+ *
+ * @param {*} value The value.
+ * @return {boolean} A value indicating whether the value is an array.
+ */
+export function isArray(value: any): boolean {
+  return Array.isArray(value);
 }
 
 /**

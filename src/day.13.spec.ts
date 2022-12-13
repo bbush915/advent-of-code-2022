@@ -14,12 +14,12 @@ describe("Day 13", function () {
 
       const answer = part1();
 
-      expect(answer).toBe(0);
+      expect(answer).toBe(13);
     });
 
     it("should calculate the correct answer for the challenge", function () {
       const answer = part1();
-      expect(answer).toBe(0);
+      expect(answer).toBe(6086);
     });
   });
 
@@ -30,12 +30,12 @@ describe("Day 13", function () {
 
       const answer = part2();
 
-      expect(answer).toBe(0);
+      expect(answer).toBe(140);
     });
 
     it("should calculate the correct answer for the challenge", function () {
       const answer = part2();
-      expect(answer).toBe(0);
+      expect(answer).toBe(27930);
     });
   });
 });
