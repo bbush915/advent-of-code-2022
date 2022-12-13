@@ -26,7 +26,7 @@ export function isNumeric(value: any): boolean {
  * @param {any} func The function.
  * @return {any} The memoized function.
  */
-export function memoize(func: any): any {
+export function memoize<T>(func: (...args: any[]) => T): (...args: any[]) => T {
   const lookup = new Map<string, any>();
 
   return function () {

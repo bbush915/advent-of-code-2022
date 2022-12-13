@@ -4,7 +4,7 @@ export function dijkstra(
   getNeighbors: (key: string) => string[],
   getDistance: (x: string, y: string) => number,
   source: string,
-  target: string
+  target?: string
 ) {
   const distanceLookup = new Map();
   distanceLookup.set(source, 0);
