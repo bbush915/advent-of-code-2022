@@ -8,6 +8,10 @@ function parseInput() {
     .filter((x) => x)
     .map((x) => x.split(" -> ").map((x) => x.split(",").map(Number)));
 
+  // NOTE - We construct the scan to be have the minimal size necessary for the
+  // simulation. We observe that the result will be a triangle with height
+  // equal to the Max Y + 1 and width twice that plus one.
+
   const height = Math.max(...paths.flat().map((x) => x[1]));
   const width = 2 * (height + 1) + 1;
 
@@ -18,6 +22,8 @@ function parseInput() {
   }
 
   scan.push(new Array(width).fill("#"));
+
+  // NOTE - Draw rock paths.
 
   for (const path of paths) {
     for (let i = 1; i < path.length; i++) {
