@@ -10,14 +10,23 @@ const options = commandLineArgs([
 
 const { day } = options;
 
-console.info(`Generating Day ${day} file from template...`);
+console.info(`Generating Day ${day} files from template...`);
 
-const template = fs.readFileSync("./src/day.template.ts").toString();
-const data = template.replace("$$DAY$$", day);
+const codeTemplate = fs
+  .readFileSync("./src/templates/day.template.txt")
+  .toString()
+  .replace(/\$\$DAY\$\$/g, day);
+
+const specTemplate = fs
+  .readFileSync("./src/templates/day.spec.template.txt")
+  .toString()
+  .replace(/\$\$DAY\$\$/g, day);
 
 try {
-  fs.writeFileSync(`./src/day.${day}.ts`, data);
-  console.info("Created file successfully!");
+  fs.writeFileSync(`./src/day.${day}.ts`, codeTemplate);
+  fs.writeFileSync(`./src/day.${day}.spec.ts`, specTemplate);
+
+  console.info("Created files successfully!");
 } catch (error: any) {
-  console.error("Failed to create file: ", error.message);
+  console.error("Failed to create files: ", error.message);
 }
