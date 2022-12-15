@@ -1,125 +1,126 @@
 import fs from "fs";
-import { clone } from "./utils/common";
-import { Segment } from "./utils/geometry";
 
-function parseInput() {
+import { Point } from "./utils/geometry";
+
+type Sensor = {
+  x: number;
+  y: number;
+  distance: number;
+};
+
+enum EndpointType {
+  START = 1,
+  FINISH = -1,
+}
+
+type Interval = {
+  a: number;
+  b: number;
+};
+
+function parseInput(): Sensor[] {
   return fs
     .readFileSync("src/day.15.input.txt")
     .toString()
     .split("\n")
     .filter((x) => x)
-    .map((x) => {
-      const parts = x.match(
-        /Sensor at x=(-?\d+), y=(-?\d+): closest beacon is at x=(-?\d+), y=(-?\d+)/
-      );
+    .map((line) => {
+      const coordinates = [...line.match(/-?\d+/g)!.values()].map(Number);
 
-      const values = [...parts!.values()].slice(1).map(Number);
+      const sensor: Point = { x: coordinates[0], y: coordinates[1] };
+      const beacon: Point = { x: coordinates[2], y: coordinates[3] };
 
       return {
-        sensor: {
-          x: values[0],
-          y: values[1],
-        },
-        beacon: {
-          x: values[2],
-          y: values[3],
-        },
-        distance: distance(values.slice(0, 2), values.slice(2)),
+        x: sensor.x,
+        y: sensor.y,
+        distance: Math.abs(beacon.x - sensor.x) + Math.abs(beacon.y - sensor.y),
       };
     });
 }
 
-export function part1() {
-  const input = parseInput();
+export function part1(y = 2_000_000) {
+  const sensors = parseInput();
 
-  for (let row = 0; row < 4000000; row++) {
-    const segments: Segment[] = [];
+  const intervals = getIntervals(sensors, y);
+  return sumIntervals(intervals);
+}
 
-    for (const i of input) {
-      const dy = Math.abs(i.sensor.y - row);
+export function part2(size = 4_000_000) {
+  const sensors = parseInput();
 
-      if (dy > i.distance) {
-        continue;
-      }
+  let tuningFrequency = 0;
 
-      const width = 2 * (i.distance - dy) + 1;
+  for (let y = 0; y < size; y++) {
+    const intervals = getIntervals(sensors, y, 0, size);
 
-      const segment: Segment = {
-        a: {
-          x: Math.max(0, i.sensor.x - (width - 1) / 2),
-          y: row,
-        },
-        b: {
-          x: Math.min(4000000, i.sensor.x + (width - 1) / 2),
-          y: row,
-        },
-      };
+    if (sumIntervals(intervals) < size) {
+      tuningFrequency = 4_000_000 * (intervals[0].b + 1) + y;
+      break;
+    }
+  }
 
-      segments.push(segment);
+  return tuningFrequency;
+}
+
+function getIntervals(
+  sensors: Sensor[],
+  y: number,
+  minX = Number.NEGATIVE_INFINITY,
+  maxX = Number.POSITIVE_INFINITY
+) {
+  const endpoints: { x: number; type: EndpointType }[] = [];
+
+  for (const sensor of sensors) {
+    const dy = Math.abs(sensor.y - y);
+
+    if (dy > sensor.distance) {
+      continue;
     }
 
-    const points = [...new Set(segments.flatMap((s) => [s.a.x, s.b.x]))].sort(
-      (x, y) => x - y
+    endpoints.push(
+      {
+        x: Math.max(minX, sensor.x - (sensor.distance - dy)),
+        type: EndpointType.START,
+      },
+      {
+        x: Math.min(maxX, sensor.x + (sensor.distance - dy)),
+        type: EndpointType.FINISH,
+      }
     );
+  }
 
-    let total = 0;
+  const endpointDepths = [
+    ...endpoints
+      .reduce((map, { x, type }) => {
+        const depth =
+          (map.get(x) ?? 0) + (type === EndpointType.START ? 1 : -1);
+        return map.set(x, depth);
+      }, new Map<number, number>())
+      .entries(),
+  ].sort(([x0], [x1]) => x0 - x1);
 
-    for (let i = 1; i < points.length; i++) {
-      const left = points[i - 1];
-      const right = points[i];
+  const intervals: Interval[] = [];
 
-      const include = segments.some((s) =>
-        intersect(s, {
-          a: { x: left + 1, y: row },
-          b: { x: right - 1, y: row },
-        })
-      );
+  let start: number | null = 0;
+  let depth = endpointDepths[0][1];
 
-      if (include) {
-        total += right - left;
-      }
-    }
+  for (let i = 1; i < endpointDepths.length; i++) {
+    depth += endpointDepths[i][1];
 
-    if (total < 4000000) {
-      const blah = 3;
+    if (depth === 0) {
+      intervals.push({ a: endpointDepths[start!][0], b: endpointDepths[i][0] });
+      start = null;
+    } else if (start === null) {
+      start = i;
     }
   }
 
-  return 0;
+  return intervals;
 }
 
-export function part2() {
-  const input = parseInput();
-
-  return 0;
-}
-
-function intersect(a: Segment, b: Segment) {
-  if (a.b.x >= b.a.x && a.b.x <= b.b.x) {
-    return {
-      a: { x: b.a.x, y: a.a.y },
-      b: { x: Math.min(a.b.x, b.b.x), y: a.a.y },
-    };
-  } else if (a.a.x >= b.a.x && a.a.x <= b.b.x) {
-    return {
-      a: { x: a.a.x, y: a.a.y },
-      b: { x: Math.min(a.b.x, b.b.x), y: a.a.y },
-    };
-  } else if (a.a.x >= b.a.x && a.b.x <= b.b.x) {
-    return {
-      a: { x: Math.max(a.a.x, b.a.x), y: a.a.y },
-      b: { x: Math.min(a.b.x, b.b.x), y: a.a.y },
-    };
-  } else if (b.a.x >= a.a.x && b.b.x <= a.b.x) {
-    return {
-      a: { x: Math.max(a.a.x, b.a.x), y: a.a.y },
-      b: { x: Math.min(a.b.x, b.b.x), y: a.a.y },
-    };
-  } else {
-    return null;
-  }
-}
-
-function distance([x0, y0]: number[], [x1, y1]: number[]) {
-  return Math.abs(x0 - x1) + Math.abs(y0 - y1);
+function sumIntervals(intervals: Interval[]) {
+  return intervals.reduce(
+    (sum, interval) => sum + (interval.b - interval.a),
+    0
+  );
 }
