@@ -9,18 +9,13 @@ function parseInput() {
     .map((x) => x.split(" -> ").map((x) => x.split(",").map(Number)));
 
   // NOTE - We construct the scan to be have the minimal size necessary for the
-  // simulation. We observe that the result will be a triangle with height
-  // equal to the Max Y + 1 and width twice that plus one.
+  // full simulation, by observing that the result will be a triangle of known
+  // size.
 
-  const height = Math.max(...paths.flat().map((x) => x[1]));
-  const width = 2 * (height + 1) + 1;
+  const height = Math.max(...paths.flat().map(([, y]) => y)) + 2;
+  const width = 2 * height + 1;
 
-  const scan: string[][] = [];
-
-  for (let i = 0; i < height + 2; i++) {
-    scan.push(new Array(width).fill("."));
-  }
-
+  const scan = [...new Array(height)].map(() => new Array(width).fill("."));
   scan.push(new Array(width).fill("#"));
 
   // NOTE - Draw rock paths.
@@ -33,7 +28,7 @@ function parseInput() {
       const dy = y1 - y0;
 
       for (let t = 0; t < Math.max(Math.abs(dx), Math.abs(dy)) + 1; t++) {
-        const x = x0 - (500 - (width - 1) / 2) + t * Math.sign(dx);
+        const x = x0 - (500 - height) + t * Math.sign(dx);
         const y = y0 + t * Math.sign(dy);
 
         scan[y][x] = "#";
@@ -46,11 +41,18 @@ function parseInput() {
 
 export function part1() {
   const scan = parseInput();
-  return simulate(scan, ([, y]) => y > scan.length - 3);
+
+  // NOTE - Stop when the first unit of sand enters the abyss.
+
+  const cutoff = scan.length - 3;
+  return simulate(scan, ([, y]) => y > cutoff);
 }
 
 export function part2() {
   const scan = parseInput();
+
+  // NOTE - Stop when the first unit of sand reaches the source.
+
   return simulate(scan, ([, y]) => y === 0) + 1;
 }
 
@@ -64,6 +66,7 @@ function simulate(
     const restingPosition = produce(scan);
 
     if (criteria(restingPosition)) {
+      // console.log(scan.map((x) => x.join("")).join("\n"));
       break;
     }
 

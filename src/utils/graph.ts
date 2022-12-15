@@ -4,7 +4,8 @@ export function dijkstra(
   getNeighbors: (key: string) => string[],
   getDistance: (x: string, y: string) => number,
   source: string,
-  target?: string
+  target?: string,
+  getHeuristic: (key: string) => number = () => 0
 ) {
   const distanceLookup = new Map();
   distanceLookup.set(source, 0);
@@ -13,7 +14,7 @@ export function dijkstra(
   predecessorLookup.set(source, undefined);
 
   const priorityQueue = new MinPriorityQueue();
-  priorityQueue.insert(source, distanceLookup.get(source));
+  priorityQueue.insert(source, getHeuristic(source));
 
   while (priorityQueue.size > 0) {
     const { key } = priorityQueue.pop()!;
@@ -26,15 +27,17 @@ export function dijkstra(
       const distance = distanceLookup.get(key) + getDistance(key, neighborKey);
 
       if (
-        distance < (distanceLookup.get(neighborKey) || Number.POSITIVE_INFINITY)
+        distance < (distanceLookup.get(neighborKey) ?? Number.POSITIVE_INFINITY)
       ) {
         distanceLookup.set(neighborKey, distance);
         predecessorLookup.set(neighborKey, key);
 
+        const heuristic = distance + getHeuristic(neighborKey);
+
         if (priorityQueue.includes(neighborKey)) {
-          priorityQueue.update(neighborKey, distance);
+          priorityQueue.update(neighborKey, heuristic);
         } else {
-          priorityQueue.insert(neighborKey, distance);
+          priorityQueue.insert(neighborKey, heuristic);
         }
       }
     }

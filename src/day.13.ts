@@ -26,7 +26,7 @@ export function part1() {
 }
 
 export function part2() {
-  const packets = [...parseInput().flat(), [[2]], [[6]]];
+  const packets = [...parseInput().flat(), [[2]], [[6]]].sort(compareValues);
   const sortedPackets = packets.sort(compareValues);
 
   return (
