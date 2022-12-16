@@ -44,7 +44,7 @@ export function memoize<T>(func: (...args: any[]) => T): (...args: any[]) => T {
   const lookup = new Map<string, any>();
 
   return function () {
-    const key = [...arguments].map((x) => String(x)).join("|");
+    const key = [...arguments].map((x) => JSON.stringify(x)).join("|");
 
     if (lookup.has(key)) {
       return lookup.get(key);
