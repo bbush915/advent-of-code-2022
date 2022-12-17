@@ -2,6 +2,12 @@ import fs from "fs";
 
 import { dijkstra } from "./utils/graph";
 
+type Scan = {
+  valveLookup: Map<string, Valve>;
+  distanceLookup: Map<string, Map<string, number>>;
+  openedLookup: Map<string, number>;
+};
+
 type Valve = {
   name: string;
   flowRate: number;
@@ -9,52 +15,47 @@ type Valve = {
 };
 
 type Context = {
-  valveLookup: Map<string, Valve>;
-  distanceLookup: Map<string, Map<string, number>>;
   current: string[];
   t: number[];
+  valveLookup: Map<string, Valve>;
+  distanceLookup: Map<string, Map<string, number>>;
   openedLookup: Map<string, number>;
 };
 
-type Possibility = { actor: Actors; to: string };
-
 type Move = {
-  actor: Actors;
+  actor: number;
   from: string;
   to: string;
   possibilities: Possibility[];
 };
 
-enum Actors {
-  ME = 0,
-  ELEPHANT = 1,
-}
+type Possibility = { actor: number; to: string };
 
-function parseInput() {
-  return fs
+function parseInput(): Scan {
+  const valveLookup = fs
     .readFileSync("src/day.16.input.txt")
     .toString()
     .split("\n")
     .filter((x) => x)
     .map((x) => {
-      const name = x.match(/[A-Z]{2}/)![0];
-      const flowRate = Number(x.match(/\d+/)![0]);
-      const neighbors = x.split(/ valves? /)[1].split(", ");
+      const [, name, flowRate, neighbors] = [
+        ...x
+          .match(
+            /^Valve ([A-Z]{2}) has flow rate=(\d+); tunnels? leads? to valves? (.+)$/
+          )!
+          .values(),
+      ];
 
       return {
         name,
-        flowRate,
-        neighbors,
+        flowRate: Number(flowRate),
+        neighbors: neighbors.split(", "),
       };
     })
     .reduce(
       (scan, valve) => scan.set(valve.name, valve),
       new Map<string, Valve>()
     );
-}
-
-export function part1() {
-  const valveLookup = parseInput();
 
   function getNeighbors(key: string) {
     return valveLookup.get(key)!.neighbors;
@@ -98,13 +99,38 @@ export function part1() {
       .map((name) => [name, 0])
   );
 
-  let maxPressureReleased = 0;
-
-  const context: Context = {
+  return {
     valveLookup,
     distanceLookup,
-    current: ["AA", "AA"],
-    t: [0, 0],
+    openedLookup,
+  };
+}
+
+export function part1() {
+  const scan = parseInput();
+  return getMaxPressureReleased(scan, 1, 30);
+}
+
+export function part2() {
+  const scan = parseInput();
+  return getMaxPressureReleased(scan, 2, 26);
+}
+
+function getMaxPressureReleased(
+  { valveLookup, distanceLookup, openedLookup }: Scan,
+  actorCount: number,
+  cutoff: number
+) {
+  let maxPressureReleased = 0;
+
+  const getPossibilities = curryGetPossibilities(actorCount, cutoff);
+  const getPressureReleased = curryGetPressureReleased(cutoff);
+
+  const context: Context = {
+    current: new Array<string>(actorCount).fill("AA"),
+    t: new Array<number>(actorCount).fill(0),
+    valveLookup,
+    distanceLookup,
     openedLookup,
   };
 
@@ -113,11 +139,8 @@ export function part1() {
   outer: while (1) {
     let move: Move | undefined = undefined;
 
-    const possibilities = curryGetPossibilities(26)(context);
-    const pressureReleased = curryGetPressureReleased(26)(context);
-
-    // NOTE - Calculate best possible pressure released to know if we can
-    // safely backtrack.
+    const possibilities = getPossibilities(context);
+    const pressureReleased = getPressureReleased(context);
 
     const bestPressureReleased =
       pressureReleased +
@@ -126,18 +149,14 @@ export function part1() {
         .map(([name]) => {
           const valve = context.valveLookup.get(name)!;
 
-          const actor =
-            context.t[Actors.ME] < context.t[Actors.ELEPHANT]
-              ? Actors.ME
-              : Actors.ELEPHANT;
+          const actor = context.t.indexOf(Math.min(...context.t));
 
-          return (
-            valve.flowRate *
-            (26 -
-              (context.t[actor] +
-                context.distanceLookup.get(context.current[actor])!.get(name)! +
-                1))
-          );
+          const curent = context.current[actor];
+          const t = context.t[actor];
+
+          const distance = context.distanceLookup.get(curent)!.get(name)!;
+
+          return valve.flowRate * Math.max(0, cutoff - (t + distance + 1));
         })
         .reduce((sum, val) => sum + val, 0);
 
@@ -196,42 +215,27 @@ export function part1() {
   return maxPressureReleased;
 }
 
-export function part2() {
-  return 0;
-}
-
-function curryGetPossibilities(cutoff: number) {
+function curryGetPossibilities(actorCount: number, cutoff: number) {
   return function getPossibilities({
-    distanceLookup,
     current,
     t,
+    distanceLookup,
     openedLookup,
   }: Context) {
-    return [
-      ...[...openedLookup.entries()]
-        .filter(
-          ([name, opened]) =>
-            opened === 0 &&
-            distanceLookup.get(current[Actors.ME])!.get(name)! + t[Actors.ME] <
-              cutoff
-        )
-        .map(([name]) => ({
-          actor: Actors.ME,
-          to: name,
-        })),
-      ...[...openedLookup.entries()]
-        .filter(
-          ([name, opened]) =>
-            opened === 0 &&
-            distanceLookup.get(current[Actors.ELEPHANT])!.get(name)! +
-              t[Actors.ELEPHANT] <
-              cutoff
-        )
-        .map(([name]) => ({
-          actor: Actors.ELEPHANT,
-          to: name,
-        })),
-    ];
+    return [...new Array(actorCount).keys()]
+      .flatMap((actor) =>
+        [...openedLookup.entries()]
+          .filter(
+            ([name, opened]) =>
+              opened === 0 &&
+              distanceLookup.get(current[actor])!.get(name)! + t[actor] < cutoff
+          )
+          .map(([name]) => ({
+            actor,
+            to: name,
+          }))
+      )
+      .sort((x, y) => 0);
   };
 }
 

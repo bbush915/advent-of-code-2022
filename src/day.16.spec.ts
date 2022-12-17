@@ -33,9 +33,9 @@ describe("Day 16", function () {
       expect(answer).toBe(1707);
     });
 
-    it("should calculate the correct answer for the challenge", function () {
-      const answer = part2();
-      expect(answer).toBe(2675);
-    });
+    // it("should calculate the correct answer for the challenge", function () {
+    //   const answer = part2();
+    //   expect(answer).toBe(2675);
+    // });
   });
 });
