@@ -1,177 +1,150 @@
 import fs from "fs";
 
 function parseInput() {
-  return fs
-    .readFileSync("src/day.18.input.txt")
-    .toString()
-    .split("\n")
-    .filter((x) => x)
-    .map((x) => x.split(",").map(Number));
+  return new Set<string>(
+    fs
+      .readFileSync("src/day.18.input.txt")
+      .toString()
+      .split("\n")
+      .filter((x) => x)
+  );
 }
 
 export function part1() {
-  const input = parseInput();
+  const cubes = parseInput();
 
-  let totalSides = 0;
+  let interiorSides = 0;
 
-  for (let i = 0; i < input.length; i++) {
-    for (let j = i + 1; j < input.length; j++) {
-      if (
-        input[i][0] - input[j][0] === 1 &&
-        input[i][1] === input[j][1] &&
-        input[i][2] === input[j][2]
-      ) {
-        totalSides++;
-      }
+  for (const cube of cubes) {
+    const [x, y, z] = fromKey(cube);
 
-      if (
-        input[i][0] - input[j][0] === -1 &&
-        input[i][1] === input[j][1] &&
-        input[i][2] === input[j][2]
-      ) {
-        totalSides++;
-      }
-
-      if (
-        input[i][1] - input[j][1] === 1 &&
-        input[i][0] === input[j][0] &&
-        input[i][2] === input[j][2]
-      ) {
-        totalSides++;
-      }
-
-      if (
-        input[i][1] - input[j][1] === -1 &&
-        input[i][0] === input[j][0] &&
-        input[i][2] === input[j][2]
-      ) {
-        totalSides++;
-      }
-
-      if (
-        input[i][2] - input[j][2] === 1 &&
-        input[i][1] === input[j][1] &&
-        input[i][0] === input[j][0]
-      ) {
-        totalSides++;
-      }
-
-      if (
-        input[i][2] - input[j][2] === -1 &&
-        input[i][1] === input[j][1] &&
-        input[i][0] === input[j][0]
-      ) {
-        totalSides++;
-      }
-    }
+    interiorSides += [
+      [x - 1, y, z],
+      [x + 1, y, z],
+      [x, y - 1, z],
+      [x, y + 1, z],
+      [x, y, z - 1],
+      [x, y, z + 1],
+    ]
+      .map(([x, y, z]) => toKey(x, y, z))
+      .filter((key) => cubes.has(key)).length;
   }
 
-  return 6 * input.length - 2 * totalSides;
+  return 6 * cubes.size - interiorSides;
 }
 
 export function part2() {
-  const input = parseInput();
+  const cubes = parseInput();
+  const envelope = getEnvelope(cubes);
 
   let totalSides = 0;
 
-  const minX = Math.min(...input.map((x) => x[0]));
-  const maxX = Math.max(...input.map((x) => x[0]));
-  const minY = Math.min(...input.map((x) => x[1]));
-  const maxY = Math.max(...input.map((x) => x[1]));
-  const minZ = Math.min(...input.map((x) => x[2]));
-  const maxZ = Math.max(...input.map((x) => x[2]));
+  for (const cube of cubes) {
+    const [x, y, z] = fromKey(cube);
 
-  const boundary = new Set<string>();
-
-  function getNeighbors(key: string) {
-    const [x, y, z] = key.split("|").map(Number);
-
-    const neighbors: string[] = [];
-
-    if (x > minX - 1) {
-      neighbors.push(`${x - 1}|${y}|${z}`);
-    }
-
-    if (x < maxX + 1) {
-      neighbors.push(`${x + 1}|${y}|${z}`);
-    }
-
-    if (y > minY - 1) {
-      neighbors.push(`${x}|${y - 1}|${z}`);
-    }
-
-    if (y < maxY + 1) {
-      neighbors.push(`${x}|${y + 1}|${z}`);
-    }
-
-    if (z > minZ - 1) {
-      neighbors.push(`${x}|${y}|${z - 1}`);
-    }
-
-    if (z < maxZ + 1) {
-      neighbors.push(`${x}|${y}|${z + 1}`);
-    }
-
-    return neighbors;
-  }
-
-  const queue: string[] = [`${minX - 1}|${minY - 1}|${minZ - 1}`];
-
-  outer: while (queue.length > 0) {
-    const key = queue.pop()!;
-    boundary.add(key);
-
-    const [x, y, z] = key.split("|").map(Number);
-
-    for (let i = 0; i < input.length; i++) {
-      if (input[i][0] === x && input[i][1] === y && input[i][2] === z) {
-        continue outer;
-      }
-    }
-
-    const neighbors = getNeighbors(key);
-    queue.push(...neighbors.filter((x) => !boundary.has(x)));
-  }
-
-  const cubes = new Set<string>(input.map((x) => `${x[0]}|${x[1]}|${x[2]}`));
-
-  for (let i = 0; i < input.length; i++) {
-    let key = "";
-
-    key = `${input[i][0] - 1}|${input[i][1]}|${input[i][2]}`;
-    if (boundary.has(key) && !cubes.has(key)) {
-      totalSides++;
-    }
-
-    key = `${input[i][0] + 1}|${input[i][1]}|${input[i][2]}`;
-    if (boundary.has(key) && !cubes.has(key)) {
-      totalSides++;
-    }
-
-    key = `${input[i][0]}|${input[i][1] - 1}|${input[i][2]}`;
-    if (boundary.has(key) && !cubes.has(key)) {
-      totalSides++;
-    }
-
-    key = `${input[i][0]}|${input[i][1] + 1}|${input[i][2]}`;
-    if (boundary.has(key) && !cubes.has(key)) {
-      totalSides++;
-    }
-
-    key = `${input[i][0]}|${input[i][1]}|${input[i][2] - 1}`;
-    if (boundary.has(key) && !cubes.has(key)) {
-      totalSides++;
-    }
-
-    key = `${input[i][0]}|${input[i][1]}|${input[i][2] + 1}`;
-    if (boundary.has(key) && !cubes.has(key)) {
-      totalSides++;
-    }
+    totalSides += [
+      [x - 1, y, z],
+      [x + 1, y, z],
+      [x, y - 1, z],
+      [x, y + 1, z],
+      [x, y, z - 1],
+      [x, y, z + 1],
+    ]
+      .map(([x, y, z]) => toKey(x, y, z))
+      .filter((key) => envelope.has(key) && !cubes.has(key)).length;
   }
 
   return totalSides;
 }
 
-function manhattan(a: number[], b: number[]) {
-  return a.map((x, i) => Math.abs(x - b[i]));
+function toKey(x: number, y: number, z: number) {
+  return `${x},${y},${z}`;
+}
+
+function fromKey(key: string) {
+  return key.split(",").map(Number);
+}
+
+function getEnvelope(cubes: Set<string>) {
+  const envelope = new Set<string>();
+
+  // NOTE - Calculate bounds and feed neighbor function.
+
+  const coordinates = [...cubes.values()].map(fromKey);
+
+  const minX = Math.min(...coordinates.map(([x]) => x)) - 1;
+  const maxX = Math.max(...coordinates.map(([x]) => x)) + 1;
+  const minY = Math.min(...coordinates.map(([, y]) => y)) - 1;
+  const maxY = Math.max(...coordinates.map(([, y]) => y)) + 1;
+  const minZ = Math.min(...coordinates.map(([, , z]) => z)) - 1;
+  const maxZ = Math.max(...coordinates.map(([, , z]) => z)) + 1;
+
+  const getNeighbors = curryGetNeighbors(minX, maxX, minY, maxY, minZ, maxZ);
+
+  // NOTE - Flood fill from lower corner to determine envelope.
+
+  const stack = [toKey(minX - 1, minY - 1, minZ - 1)];
+
+  outer: while (stack.length > 0) {
+    const key = stack.pop()!;
+    envelope.add(key);
+
+    // NOTE - If we reach a cube, we don't want to continue.
+
+    const [x0, y0, z0] = fromKey(key);
+
+    for (const cube of cubes) {
+      const [x1, y1, z1] = fromKey(cube);
+
+      if (x0 === x1 && y0 === y1 && z0 === z1) {
+        continue outer;
+      }
+    }
+
+    const neighbors = getNeighbors(key).filter((x) => !envelope.has(x));
+    stack.push(...neighbors);
+  }
+
+  return envelope;
+}
+
+function curryGetNeighbors(
+  minX: number,
+  maxX: number,
+  minY: number,
+  maxY: number,
+  minZ: number,
+  maxZ: number
+) {
+  return function getNeighbors(key: string) {
+    const [x, y, z] = fromKey(key);
+
+    const neighbors: string[] = [];
+
+    if (x > minX) {
+      neighbors.push(toKey(x - 1, y, z));
+    }
+
+    if (x < maxX) {
+      neighbors.push(toKey(x + 1, y, z));
+    }
+
+    if (y > minY) {
+      neighbors.push(toKey(x, y - 1, z));
+    }
+
+    if (y < maxY) {
+      neighbors.push(toKey(x, y + 1, z));
+    }
+
+    if (z > minZ) {
+      neighbors.push(toKey(x, y, z - 1));
+    }
+
+    if (z < maxZ) {
+      neighbors.push(toKey(x, y, z + 1));
+    }
+
+    return neighbors;
+  };
 }
