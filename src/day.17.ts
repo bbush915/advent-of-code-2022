@@ -1,15 +1,27 @@
 import fs from "fs";
 
-const PIECES = [
+type Piece = {
+  width: number;
+  height: number;
+  layout: string[][];
+};
+
+enum Directions {
+  LEFT,
+  RIGHT,
+  DOWN,
+}
+
+const PIECES: Piece[] = [
   {
     width: 4,
     height: 1,
-    shape: [["#", "#", "#", "#"]],
+    layout: [["#", "#", "#", "#"]],
   },
   {
     width: 3,
     height: 3,
-    shape: [
+    layout: [
       [".", "#", "."],
       ["#", "#", "#"],
       [".", "#", "."],
@@ -18,7 +30,7 @@ const PIECES = [
   {
     width: 3,
     height: 3,
-    shape: [
+    layout: [
       [".", ".", "#"],
       [".", ".", "#"],
       ["#", "#", "#"],
@@ -27,30 +39,27 @@ const PIECES = [
   {
     width: 1,
     height: 4,
-    shape: [["#"], ["#"], ["#"], ["#"]],
+    layout: [["#"], ["#"], ["#"], ["#"]],
   },
   {
     width: 2,
     height: 2,
-    shape: [
+    layout: [
       ["#", "#"],
       ["#", "#"],
     ],
   },
 ];
 
-enum Direction {
-  LEFT,
-  RIGHT,
-  DOWN,
-}
+const CHAMBER_WIDTH = 7;
 
 function parseInput() {
   return fs
     .readFileSync("src/day.17.input.txt")
     .toString()
-    .split("")
-    .slice(0, -1);
+    .split("\n")
+    .filter((x) => x)[0]
+    .split("");
 }
 
 export function part1() {
@@ -59,17 +68,28 @@ export function part1() {
 }
 
 export function part2() {
-  // NOTE - We observe that the jet pattern repeats every 1725 pieces. We then
-  // observe the height change every 1725 pieces to be constant (except the
-  // first). Finally, we note that the remainder is consistent modulo 1725
-  // pieces which means we can just calculate the answer.
+  const jetPattern = parseInput();
 
-  return Math.floor(1_000_000_000_000 / 1725) * 2702 - 3 + 2499;
+  // NOTE - We observe that the jet pattern repeats every 1725 piecees after
+  // the first 1717. In addition, the height gain is consistent modulo 1725.
+  // This allows us to directly calculate the height.
+
+  const base = 1717;
+  const period = 1725;
+
+  const order = Math.floor((1_000_000_000_000 - base) / period);
+  const remainder = (1_000_000_000_000 - base) % period;
+
+  const baseHeight = simulate(jetPattern, base);
+  const repeatHeight = simulate(jetPattern, base + period) - baseHeight;
+  const remainderHeight = simulate(jetPattern, base + remainder) - baseHeight;
+
+  return baseHeight + order * repeatHeight + remainderHeight;
 }
 
 function simulate(jetPattern: string[], pieceCount: number) {
   const chamber = [...new Array(4 * pieceCount)].map(() =>
-    new Array<string>(7).fill(".")
+    new Array<string>(CHAMBER_WIDTH).fill(".")
   );
 
   let height = 0;
@@ -82,16 +102,18 @@ function simulate(jetPattern: string[], pieceCount: number) {
     let y = 2;
 
     while (1) {
+      // NOTE - Apply jet to piece.
+
       switch (jetPattern[jetIndex % jetPattern.length]) {
         case "<": {
-          if (canMove(chamber, piece, x, y, Direction.LEFT)) {
+          if (canMove(chamber, piece, x, y, Directions.LEFT)) {
             y--;
           }
           break;
         }
 
         case ">": {
-          if (canMove(chamber, piece, x, y, Direction.RIGHT)) {
+          if (canMove(chamber, piece, x, y, Directions.RIGHT)) {
             y++;
           }
           break;
@@ -100,18 +122,22 @@ function simulate(jetPattern: string[], pieceCount: number) {
 
       jetIndex++;
 
-      if (canMove(chamber, piece, x, y, Direction.DOWN)) {
+      // NOTE - Drop piece.
+
+      if (canMove(chamber, piece, x, y, Directions.DOWN)) {
         x++;
       } else {
+        // NOTE - Piece at rest. Update height of tower and update chamber.
+
         height = Math.max(chamber.length - x, height);
 
         for (let i = 0; i < piece.height; i++) {
           for (let j = 0; j < piece.width; j++) {
-            if (piece.shape[i][j] === ".") {
+            if (piece.layout[i][j] === ".") {
               continue;
             }
 
-            chamber[x + i][y + j] = piece.shape[i][j];
+            chamber[x + i][y + j] = piece.layout[i][j];
           }
         }
 
@@ -125,23 +151,20 @@ function simulate(jetPattern: string[], pieceCount: number) {
 
 function canMove(
   chamber: string[][],
-  piece: typeof PIECES[number],
+  { width, height, layout }: Piece,
   x: number,
   y: number,
-  direction: Direction
+  direction: Directions
 ) {
   switch (direction) {
-    case Direction.LEFT: {
+    case Directions.LEFT: {
       if (y === 0) {
         return false;
       }
 
-      for (let i = 0; i < piece.height; i++) {
-        for (let j = 0; j < piece.width; j++) {
-          if (
-            piece.shape[i][j] === "." ||
-            (j > 0 && piece.shape[i][j - 1] === "#")
-          ) {
+      for (let i = 0; i < height; i++) {
+        for (let j = 0; j < width; j++) {
+          if (layout[i][j] === "." || (j > 0 && layout[i][j - 1] === "#")) {
             continue;
           }
 
@@ -153,16 +176,16 @@ function canMove(
 
       break;
     }
-    case Direction.RIGHT: {
-      if (y === 7 - piece.width) {
+    case Directions.RIGHT: {
+      if (y === CHAMBER_WIDTH - width) {
         return false;
       }
 
-      for (let i = 0; i < piece.height; i++) {
-        for (let j = 0; j < piece.width; j++) {
+      for (let i = 0; i < height; i++) {
+        for (let j = 0; j < width; j++) {
           if (
-            piece.shape[i][j] === "." ||
-            (j < piece.width - 1 && piece.shape[i][j + 1] === "#")
+            layout[i][j] === "." ||
+            (j < width - 1 && layout[i][j + 1] === "#")
           ) {
             continue;
           }
@@ -176,16 +199,16 @@ function canMove(
       break;
     }
 
-    case Direction.DOWN: {
+    case Directions.DOWN: {
       if (x === chamber.length - 1) {
         return false;
       }
 
-      for (let i = 0; i < piece.height; i++) {
-        for (let j = 0; j < piece.width; j++) {
+      for (let i = 0; i < height; i++) {
+        for (let j = 0; j < width; j++) {
           if (
-            piece.shape[i][j] === "." ||
-            (i < piece.height - 1 && piece.shape[i + 1][j] === "#")
+            layout[i][j] === "." ||
+            (i < height - 1 && layout[i + 1][j] === "#")
           ) {
             continue;
           }
