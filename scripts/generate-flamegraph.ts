@@ -6,7 +6,7 @@ dotenv.config();
 const options = commandLineArgs([
   { name: "day", type: Number, defaultValue: Number(process.env.DAY) },
   { name: "part", alias: "p", type: Number },
-  { name: "iterations", alias: "n", type: Number, defaultValue: 50000 },
+  { name: "iterations", alias: "n", type: Number, defaultValue: 1 },
 ]);
 
 const { day, part, iterations } = options;

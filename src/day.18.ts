@@ -85,20 +85,12 @@ function getEnvelope(cubes: Set<string>) {
 
   const stack = [toKey(minX - 1, minY - 1, minZ - 1)];
 
-  outer: while (stack.length > 0) {
+  while (stack.length > 0) {
     const key = stack.pop()!;
     envelope.add(key);
 
-    // NOTE - If we reach a cube, we don't want to continue.
-
-    const [x0, y0, z0] = fromKey(key);
-
-    for (const cube of cubes) {
-      const [x1, y1, z1] = fromKey(cube);
-
-      if (x0 === x1 && y0 === y1 && z0 === z1) {
-        continue outer;
-      }
+    if (cubes.has(key)) {
+      continue;
     }
 
     const neighbors = getNeighbors(key).filter((x) => !envelope.has(x));
