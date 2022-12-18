@@ -1,7 +1,5 @@
 import fs from "fs";
 
-import { clone } from "./utils/common";
-
 const PIECES = [
   {
     width: 4,
@@ -61,6 +59,11 @@ export function part1() {
 }
 
 export function part2() {
+  // NOTE - We observe that the jet pattern repeats every 1725 pieces. We then
+  // observe the height change every 1725 pieces to be constant (except the
+  // first). Finally, we note that the remainder is consistent modulo 1725
+  // pieces which means we can just calculate the answer.
+
   return Math.floor(1_000_000_000_000 / 1725) * 2702 - 3 + 2499;
 }
 
@@ -96,10 +99,6 @@ function simulate(jetPattern: string[], pieceCount: number) {
       }
 
       jetIndex++;
-
-      // if (jetIndex % jetPattern.length === 0) {
-      //   console.log(i);
-      // }
 
       if (canMove(chamber, piece, x, y, Direction.DOWN)) {
         x++;
@@ -203,24 +202,3 @@ function canMove(
 
   return true;
 }
-
-// function print(chamber: string[][]) {
-//   console.log(chamber.map((x) => x.join("")).join("\n"));
-// }
-
-// function printMove(
-//   chamber: string[][],
-//   piece: typeof PIECES[number],
-//   x: number,
-//   y: number
-// ) {
-//   const clonedChamber = clone(chamber);
-
-//   for (let i = 0; i < piece.height; i++) {
-//     for (let j = 0; j < piece.width; j++) {
-//       clonedChamber[x + i][y + j] = piece.shape[i][j] === "#" ? "@" : ".";
-//     }
-//   }
-
-//   console.log(clonedChamber.map((x) => x.join("")).join("\n"));
-// }

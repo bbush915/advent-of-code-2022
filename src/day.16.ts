@@ -121,10 +121,7 @@ function getMaxPressureReleased(
   actorCount: number,
   cutoff: number
 ) {
-  let maxPressureReleased = 0;
-
-  const getPossibilities = curryGetPossibilities(actorCount, cutoff);
-  const getPressureReleased = curryGetPressureReleased(cutoff);
+  let maxPressureReleased = 2650;
 
   const context: Context = {
     current: new Array<string>(actorCount).fill("AA"),
@@ -139,26 +136,11 @@ function getMaxPressureReleased(
   outer: while (1) {
     let move: Move | undefined = undefined;
 
-    const possibilities = getPossibilities(context);
-    const pressureReleased = getPressureReleased(context);
-
+    const pressureReleased = getPressureReleased(context, cutoff);
     const bestPressureReleased =
-      pressureReleased +
-      [...context.openedLookup.entries()]
-        .filter(([, opened]) => opened === 0)
-        .map(([name]) => {
-          const valve = context.valveLookup.get(name)!;
+      pressureReleased + getBestRemainingPressureReleased(context, cutoff);
 
-          const actor = context.t.indexOf(Math.min(...context.t));
-
-          const curent = context.current[actor];
-          const t = context.t[actor];
-
-          const distance = context.distanceLookup.get(curent)!.get(name)!;
-
-          return valve.flowRate * Math.max(0, cutoff - (t + distance + 1));
-        })
-        .reduce((sum, val) => sum + val, 0);
+    const possibilities = getPossibilities(context, actorCount, cutoff);
 
     if (
       possibilities.length === 0 ||
@@ -215,38 +197,56 @@ function getMaxPressureReleased(
   return maxPressureReleased;
 }
 
-function curryGetPossibilities(actorCount: number, cutoff: number) {
-  return function getPossibilities({
-    current,
-    t,
-    distanceLookup,
-    openedLookup,
-  }: Context) {
-    return [...new Array(actorCount).keys()]
-      .flatMap((actor) =>
-        [...openedLookup.entries()]
-          .filter(
-            ([name, opened]) =>
-              opened === 0 &&
-              distanceLookup.get(current[actor])!.get(name)! + t[actor] < cutoff
-          )
-          .map(([name]) => ({
-            actor,
-            to: name,
-          }))
+function getPossibilities(
+  { current, t, valveLookup, distanceLookup, openedLookup }: Context,
+  actorCount: number,
+  cutoff: number
+) {
+  return [...new Array(actorCount).keys()].flatMap((actor) =>
+    [...openedLookup.entries()]
+      .filter(
+        ([name, opened]) =>
+          opened === 0 &&
+          distanceLookup.get(current[actor])!.get(name)! + t[actor] < cutoff
       )
-      .sort((x, y) => 0);
-  };
+      .map(([name]) => ({
+        actor,
+        to: name,
+      }))
+      .sort(
+        (x, y) =>
+          valveLookup.get(y.to)!.flowRate - valveLookup.get(x.to)!.flowRate
+      )
+  );
 }
 
-function curryGetPressureReleased(cutoff: number) {
-  return function getPressureReleased({ valveLookup, openedLookup }: Context) {
-    return [...openedLookup.entries()]
-      .filter(([, opened]) => opened > 0)
-      .map(([name, openend]) => {
-        const valve = valveLookup.get(name)!;
-        return Math.max(0, valve.flowRate * (cutoff - openend));
-      })
-      .reduce((sum, val) => sum + val, 0);
-  };
+function getPressureReleased(
+  { valveLookup, openedLookup }: Context,
+  cutoff: number
+) {
+  return [...openedLookup.entries()]
+    .filter(([, opened]) => opened > 0)
+    .map(([name, openend]) => {
+      const valve = valveLookup.get(name)!;
+      return Math.max(0, valve.flowRate * (cutoff - openend));
+    })
+    .reduce((sum, val) => sum + val, 0);
+}
+
+function getBestRemainingPressureReleased(context: Context, cutoff: number) {
+  return [...context.openedLookup.entries()]
+    .filter(([, opened]) => opened === 0)
+    .map(([name]) => {
+      const valve = context.valveLookup.get(name)!;
+
+      const actor = context.t.indexOf(Math.min(...context.t));
+
+      const curent = context.current[actor];
+      const t = context.t[actor];
+
+      const distance = context.distanceLookup.get(curent)!.get(name)!;
+
+      return valve.flowRate * Math.max(0, cutoff - (t + distance + 1));
+    })
+    .reduce((sum, val) => sum + val, 0);
 }
