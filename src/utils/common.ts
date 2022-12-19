@@ -35,6 +35,23 @@ export function isArray(value: any): boolean {
 }
 
 /**
+ * Returns the cartesian product of the given arrays.
+ *
+ * @template T
+ * @param {T[][]} arrays The arrays.
+ * @return {T[][]} The cartesian product of the given arrays.
+ */
+export function cartesian<T>(...arrays: T[][]): T[][] {
+  return arrays.reduce(
+    (productArrays, array) =>
+      productArrays.flatMap((productArray) =>
+        array.map((value) => [...productArray, value])
+      ),
+    [[]] as T[][]
+  );
+}
+
+/**
  * Memoizes a function
  *
  * @param {any} func The function.

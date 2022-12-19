@@ -1,11 +1,12 @@
 import fs from "fs";
 
+import { cartesian } from "./utils/common";
 import { dijkstra } from "./utils/graph";
 
 type Scan = {
   valveLookup: Map<string, Valve>;
   distanceLookup: Map<string, Map<string, number>>;
-  openedLookup: Map<string, number>;
+  openLookup: Map<string, number>;
 };
 
 type Valve = {
@@ -15,21 +16,26 @@ type Valve = {
 };
 
 type Context = {
-  current: string[];
-  t: number[];
+  locations: string[];
+  times: number[];
+  actions: Action[];
   valveLookup: Map<string, Valve>;
   distanceLookup: Map<string, Map<string, number>>;
-  openedLookup: Map<string, number>;
+  openLookup: Map<string, number>;
+};
+
+type Action = {
+  moves: Move[];
+  possibleMoves: Move[][];
 };
 
 type Move = {
   actor: number;
   from: string;
   to: string;
-  possibilities: Possibility[];
 };
 
-type Possibility = { actor: number; to: string };
+const START_VALVE = "AA";
 
 function parseInput(): Scan {
   const valveLookup = fs
@@ -66,7 +72,7 @@ function parseInput(): Scan {
   }
 
   const distanceLookup = [...valveLookup.values()]
-    .filter((x) => x.flowRate > 0 || x.name === "AA")
+    .filter((x) => x.flowRate > 0 || x.name === START_VALVE)
     .reduce((distanceLookup, valve, i, valves) => {
       for (let j = i + 1; j < valves.length; j++) {
         if (!distanceLookup.get(valve.name)) {
@@ -93,160 +99,173 @@ function parseInput(): Scan {
       return distanceLookup;
     }, new Map<string, Map<string, number>>());
 
-  const openedLookup = new Map<string, number>(
+  const openLookup = new Map<string, number>(
     [...distanceLookup.keys()]
-      .filter((x) => x !== "AA")
+      .filter((x) => x !== START_VALVE)
       .map((name) => [name, 0])
   );
 
   return {
     valveLookup,
     distanceLookup,
-    openedLookup,
+    openLookup,
   };
 }
 
 export function part1() {
   const scan = parseInput();
-  return getMaxPressureReleased(scan, 1, 30);
+  return getMaximumPressureReleased(scan, 1, 30);
 }
 
 export function part2() {
   const scan = parseInput();
-  return getMaxPressureReleased(scan, 2, 26);
+  return getMaximumPressureReleased(scan, 2, 26);
 }
 
-function getMaxPressureReleased(
-  { valveLookup, distanceLookup, openedLookup }: Scan,
+function getMaximumPressureReleased(
+  { valveLookup, distanceLookup, openLookup }: Scan,
   actorCount: number,
-  cutoff: number
+  timeLimit: number
 ) {
-  let maxPressureReleased = 2650;
+  let maxPressureReleased = 0;
 
   const context: Context = {
-    current: new Array<string>(actorCount).fill("AA"),
-    t: new Array<number>(actorCount).fill(0),
+    locations: new Array<string>(actorCount).fill(START_VALVE),
+    times: new Array<number>(actorCount).fill(0),
+    actions: [],
     valveLookup,
     distanceLookup,
-    openedLookup,
+    openLookup,
   };
 
-  const moves: Move[] = [];
+  outerLoop: while (1) {
+    let action: Action | undefined = undefined;
 
-  outer: while (1) {
-    let move: Move | undefined = undefined;
-
-    const pressureReleased = getPressureReleased(context, cutoff);
+    const pressureReleased = getPressureReleased(context, timeLimit);
     const bestPressureReleased =
-      pressureReleased + getBestRemainingPressureReleased(context, cutoff);
+      pressureReleased + getBestRemainingPressureReleased(context, timeLimit);
 
-    const possibilities = getPossibilities(context, actorCount, cutoff);
+    const possibleMoves = getPossibleMoves(context, actorCount, timeLimit);
 
     if (
-      possibilities.length === 0 ||
-      bestPressureReleased < maxPressureReleased
+      bestPressureReleased < maxPressureReleased ||
+      possibleMoves.length === 0
     ) {
       if (pressureReleased > maxPressureReleased) {
         maxPressureReleased = pressureReleased;
-        console.log(maxPressureReleased);
       }
 
-      while (1) {
-        move = moves.pop();
+      // NOTE - Backtrack!
 
-        if (move === undefined) {
-          break outer;
+      while (1) {
+        action = context.actions.pop();
+
+        // NOTE - We've exhausted all possible actions, so we're done.
+
+        if (action === undefined) {
+          break outerLoop;
         }
 
-        context.current[move.actor] = move.from;
-        context.t[move.actor] -=
-          context.distanceLookup.get(move.to)!.get(move.from)! + 1;
-        context.openedLookup.set(move.to, 0);
+        // NOTE - Undo action.
 
-        if (move.possibilities.length > 0) {
-          const possiblity = move.possibilities.pop()!;
+        for (const { actor, from, to } of action.moves) {
+          context.locations[actor] = from;
+          context.times[actor] -= distanceLookup.get(to)!.get(from)! + 1;
+          context.openLookup.set(to, 0);
+        }
 
-          move.actor = possiblity.actor;
-          move.from = context.current[possiblity.actor];
-          move.to = possiblity.to;
+        // NOTE - If we still have possible moves, try the next one.
 
+        if (action.possibleMoves.length > 0) {
+          const moves = action.possibleMoves.pop()!;
+          action.moves = moves;
           break;
         }
       }
     }
 
-    if (move === undefined) {
-      const possiblity = possibilities.pop()!;
+    if (action === undefined) {
+      const moves = possibleMoves.pop()!;
 
-      move = {
-        actor: possiblity.actor,
-        from: context.current[possiblity.actor],
-        to: possiblity.to,
-        possibilities,
+      action = {
+        moves,
+        possibleMoves,
       };
     }
 
-    context.current[move.actor] = move.to;
-    context.t[move.actor] +=
-      context.distanceLookup.get(move.from)!.get(move.to)! + 1;
-    context.openedLookup.set(move.to, context.t[move.actor]);
+    // NOTE - Do action.
 
-    moves.push(move);
+    for (const { actor, from, to } of action.moves) {
+      context.locations[actor] = to;
+      context.times[actor] += distanceLookup.get(from)!.get(to)! + 1;
+      context.openLookup.set(to, context.times[actor]);
+    }
+
+    context.actions.push(action);
   }
 
   return maxPressureReleased;
 }
 
-function getPossibilities(
-  { current, t, valveLookup, distanceLookup, openedLookup }: Context,
+function getPossibleMoves(
+  { locations, times, valveLookup, distanceLookup, openLookup }: Context,
   actorCount: number,
-  cutoff: number
+  timeLimit: number
 ) {
-  return [...new Array(actorCount).keys()].flatMap((actor) =>
-    [...openedLookup.entries()]
+  const actorMoves: Move[][] = [...new Array(actorCount).keys()].map((actor) =>
+    [...openLookup.entries()]
       .filter(
-        ([name, opened]) =>
-          opened === 0 &&
-          distanceLookup.get(current[actor])!.get(name)! + t[actor] < cutoff
+        ([name, open]) =>
+          open === 0 &&
+          distanceLookup.get(locations[actor])!.get(name)! + times[actor] <
+            timeLimit
       )
-      .map(([name]) => ({
-        actor,
-        to: name,
-      }))
+      .map(([name]) => ({ actor, from: locations[actor], to: name }))
       .sort(
         (x, y) =>
           valveLookup.get(y.to)!.flowRate - valveLookup.get(x.to)!.flowRate
       )
   );
+
+  const product = cartesian(...actorMoves);
+
+  const filteredProduct = product.filter(
+    (x) => new Set(x.map(({ actor }) => actor)).size === actorCount
+  );
+
+  return filteredProduct;
 }
 
 function getPressureReleased(
-  { valveLookup, openedLookup }: Context,
-  cutoff: number
+  { valveLookup, openLookup }: Context,
+  timeLimit: number
 ) {
-  return [...openedLookup.entries()]
-    .filter(([, opened]) => opened > 0)
-    .map(([name, openend]) => {
+  return [...openLookup.entries()]
+    .filter(([, open]) => open > 0)
+    .map(([name, open]) => {
       const valve = valveLookup.get(name)!;
-      return Math.max(0, valve.flowRate * (cutoff - openend));
+      return Math.max(0, valve.flowRate * (timeLimit - open));
     })
     .reduce((sum, val) => sum + val, 0);
 }
 
-function getBestRemainingPressureReleased(context: Context, cutoff: number) {
-  return [...context.openedLookup.entries()]
-    .filter(([, opened]) => opened === 0)
+function getBestRemainingPressureReleased(
+  { locations, times, valveLookup, distanceLookup, openLookup }: Context,
+  timeLimit: number
+) {
+  return [...openLookup.entries()]
+    .filter(([, open]) => open === 0)
     .map(([name]) => {
-      const valve = context.valveLookup.get(name)!;
+      const valve = valveLookup.get(name)!;
 
-      const actor = context.t.indexOf(Math.min(...context.t));
+      const actor = times.indexOf(Math.min(...times));
 
-      const curent = context.current[actor];
-      const t = context.t[actor];
+      const location = locations[actor];
+      const time = times[actor];
 
-      const distance = context.distanceLookup.get(curent)!.get(name)!;
+      const distance = distanceLookup.get(location)!.get(name)!;
 
-      return valve.flowRate * Math.max(0, cutoff - (t + distance + 1));
+      return valve.flowRate * Math.max(0, timeLimit - (time + distance + 1));
     })
     .reduce((sum, val) => sum + val, 0);
 }
