@@ -1,45 +1,66 @@
 import fs from "fs";
+
 import { clone } from "./utils/common";
 
-function parseInput() {
+type Value = { x: number; i: number };
+
+function parseInput(): Value[] {
   return fs
     .readFileSync("src/day.20.input.txt")
     .toString()
     .split("\n")
     .filter((x) => x)
-    .map((x, i) => ({ x: Number(x) * 811589153, i }));
+    .map((x, i) => ({ x: Number(x), i }));
 }
 
 export function part1() {
-  let input = parseInput();
+  const values = parseInput();
 
-  const original = clone(input);
+  mix(values, 1);
 
-  for (let i = 0; i < 10; i++) {
-    for (const val of original) {
-      const idx = input.findIndex((a) => a.i === val.i && a.x === val.x);
-      input.splice(idx, 1);
-
-      const newIdx = (idx + val.x + input.length) % input.length;
-      input.splice(newIdx, 0, val);
-
-      if (val.x && newIdx === 0) {
-        input.push(input.shift()!);
-      }
-
-      //console.log(input);
-    }
-  }
-
-  const zero = input.findIndex((a) => a.x === 0)!;
-
-  return (
-    input[(zero + 1000) % input.length].x +
-    input[(zero + 2000) % input.length].x +
-    input[(zero + 3000) % input.length].x
-  );
+  return getCoordinateSum(values);
 }
 
 export function part2() {
-  return 0;
+  const values = parseInput();
+
+  for (const value of values) {
+    value.x *= 811589153;
+  }
+
+  mix(values, 10);
+
+  return getCoordinateSum(values);
+}
+
+function mix(values: Value[], iterations: number) {
+  const referenceValues = clone(values);
+
+  for (let n = 0; n < iterations; n++) {
+    for (const value of referenceValues) {
+      const index = values.findIndex(
+        ({ x, i }) => x === value.x && i === value.i
+      );
+
+      values.splice(index, 1);
+
+      const newIndex = (index + value.x + values.length) % values.length;
+
+      values.splice(newIndex, 0, value);
+
+      if (value.x && newIndex === 0) {
+        values.push(values.shift()!);
+      }
+    }
+  }
+}
+
+function getCoordinateSum(values: Value[]) {
+  const baseIndex = values.findIndex(({ x }) => x === 0)!;
+
+  return (
+    values[(baseIndex + 1000) % values.length].x +
+    values[(baseIndex + 2000) % values.length].x +
+    values[(baseIndex + 3000) % values.length].x
+  );
 }
