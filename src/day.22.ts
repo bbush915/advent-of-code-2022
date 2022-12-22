@@ -1,6 +1,5 @@
 import fs from "fs";
 
-import { clone } from "./utils/common";
 import { Segment as Edge } from "./utils/geometry";
 
 type Notes = {
