@@ -6,6 +6,12 @@ type Blueprint = number[][];
 
 type State = number[];
 
+type Context = {
+  maxTime: number;
+  bestGeodeCount: number;
+  lookup: Map<string, number>;
+};
+
 enum Resources {
   ORE,
   CLAY,
@@ -14,7 +20,7 @@ enum Resources {
 }
 
 enum Robots {
-  ORE = 4,
+  ORE,
   CLAY,
   OBSIDIAN,
   GEODE,
@@ -28,15 +34,13 @@ enum Decisions {
   BUILD_GEODE_ROBOT,
 }
 
-const TIME = 8;
-
 function parseInput(): Blueprint[] {
   return fs
-    .readFileSync("src/day.19.example.1.txt")
+    .readFileSync("src/day.19.input.txt")
     .toString()
     .split("\n")
     .filter((x) => x)
-    .map((x, i) => {
+    .map((x) => {
       const parts = x.split(": ")[1].split(". ");
 
       return [
@@ -55,8 +59,11 @@ export function part1() {
     .map(
       (blueprint, i) =>
         (i + 1) *
-        // getMaxGeodeCountForwards(blueprint, 24, [0, 0, 0, 0, 1, 0, 0, 0, 0])
-        getMaxGeodeCountBackwards(blueprint, 24)
+        getMaxGeodeCountV2(blueprint, [0, 0, 0, 0, 1, 0, 0, 0, 0], {
+          maxTime: 24,
+          bestGeodeCount: 0,
+          lookup: new Map<string, number>(),
+        })
     )
     .reduce((product, qualityLevel) => product * qualityLevel, 1);
 }
@@ -67,25 +74,38 @@ export function part2() {
   return blueprints
     .slice(0, 3)
     .map((blueprint) =>
-      // getMaxGeodeCountForwards(blueprint, 32, [0, 0, 0, 0, 1, 0, 0, 0, 0])
-      getMaxGeodeCountBackwards(blueprint, 32)
+      getMaxGeodeCountV2(blueprint, [0, 0, 0, 0, 1, 0, 0, 0, 0], {
+        maxTime: 32,
+        bestGeodeCount: 0,
+        lookup: new Map<string, number>(),
+      })
     )
     .reduce((sum, qualityLevel) => sum + qualityLevel, 0);
 }
 
-// function getMaxGeodeCountForwards(
+// function getMaxGeodeCount(
 //   blueprint: Blueprint,
-//   timeLimit: number,
-//   state: State
+//   state: State,
+//   context: Context
 // ): number {
-//   if (state[TIME] === timeLimit) {
-//     return state[Resources.GEODE];
+//   if (state[8] === context.maxTime) {
+//     const geodeCount = state[Resources.GEODE];
+
+//     if (geodeCount > context.bestGeodeCount) {
+//       context.bestGeodeCount = geodeCount;
+//     }
+
+//     return geodeCount;
+//   }
+
+//   const key = toKey(state);
+
+//   if (context.lookup.has(key)) {
+//     return context.lookup.get(key)!;
 //   }
 
 //   const geodeCounts = getPossibleDecisions(blueprint, state).map((decision) => {
 //     const decisionState = clone(state);
-
-//     decisionState[TIME]++;
 
 //     for (let i = 0; i < 4; i++) {
 //       decisionState[i] += decisionState[i + 4];
@@ -93,7 +113,7 @@ export function part2() {
 
 //     switch (decision) {
 //       case Decisions.BUILD_ORE_ROBOT: {
-//         decisionState[Robots.ORE]++;
+//         decisionState[Robots.ORE + 4]++;
 
 //         decisionState[Resources.ORE] -= blueprint[Resources.ORE][Resources.ORE];
 
@@ -101,7 +121,7 @@ export function part2() {
 //       }
 
 //       case Decisions.BUILD_CLAY_ROBOT: {
-//         decisionState[Robots.CLAY]++;
+//         decisionState[Robots.CLAY + 4]++;
 
 //         decisionState[Resources.ORE] -=
 //           blueprint[Resources.CLAY][Resources.ORE];
@@ -110,7 +130,7 @@ export function part2() {
 //       }
 
 //       case Decisions.BUILD_OBSIDIAN_ROBOT: {
-//         decisionState[Robots.OBSIDIAN]++;
+//         decisionState[Robots.OBSIDIAN + 4]++;
 
 //         decisionState[Resources.ORE] -=
 //           blueprint[Resources.OBSIDIAN][Resources.ORE];
@@ -121,7 +141,7 @@ export function part2() {
 //       }
 
 //       case Decisions.BUILD_GEODE_ROBOT: {
-//         decisionState[Robots.GEODE]++;
+//         decisionState[Robots.GEODE + 4]++;
 
 //         decisionState[Resources.ORE] -=
 //           blueprint[Resources.GEODE][Resources.ORE];
@@ -132,62 +152,156 @@ export function part2() {
 //       }
 //     }
 
-//     return getMaxGeodeCount(blueprint, timeLimit, decisionState);
+//     decisionState[8]++;
+
+//     return getMaxGeodeCount(blueprint, decisionState, context);
 //   });
 
-//   return Math.max(...geodeCounts);
+//   const maxGeodeCount = Math.max(...geodeCounts);
+
+//   context.lookup.set(key, maxGeodeCount);
+
+//   return maxGeodeCount;
 // }
 
-// function getPossibleDecisions(blueprint: Blueprint, state: State) {
-//   const decisions = [Decisions.WAIT];
+function getMaxGeodeCountV2(
+  blueprint: Blueprint,
+  state: State,
+  { maxTime }: Context
+) {
+  let states = new Map<number, Set<string>>([
+    [0, new Set<string>([toKey(state)])],
+  ]);
 
-//   // NOTE - Ore
+  for (let i = 0; i < maxTime; i++) {
+    let workingStates = new Map<number, Set<string>>();
 
-//   if (state[Resources.ORE] >= blueprint[Resources.ORE][Resources.ORE]) {
-//     decisions.push(Decisions.BUILD_ORE_ROBOT);
-//   }
+    for (const [, keys] of states.entries()) {
+      for (const key of keys) {
+        const state = fromKey(key);
 
-//   // NOTE - Clay
+        for (const decision of getPossibleDecisions(blueprint, state)) {
+          const decisionState = clone(state);
 
-//   if (state[Resources.ORE] >= blueprint[Resources.CLAY][Resources.ORE]) {
-//     decisions.push(Decisions.BUILD_CLAY_ROBOT);
-//   }
+          for (let i = 0; i < 4; i++) {
+            decisionState[i] += decisionState[i + 4];
+          }
 
-//   // NOTE - Obsidian
+          switch (decision) {
+            case Decisions.BUILD_ORE_ROBOT: {
+              decisionState[Robots.ORE + 4]++;
 
-//   if (
-//     state[Resources.ORE] >= blueprint[Resources.OBSIDIAN][Resources.ORE] &&
-//     state[Resources.CLAY] >= blueprint[Resources.OBSIDIAN][Resources.CLAY]
-//   ) {
-//     decisions.push(Decisions.BUILD_OBSIDIAN_ROBOT);
-//   }
+              decisionState[Resources.ORE] -=
+                blueprint[Resources.ORE][Resources.ORE];
 
-//   // NOTE - Geode
+              break;
+            }
 
-//   if (
-//     state[Resources.ORE] >= blueprint[Resources.GEODE][Resources.ORE] &&
-//     state[Resources.OBSIDIAN] >= blueprint[Resources.GEODE][Resources.OBSIDIAN]
-//   ) {
-//     decisions.push(Decisions.BUILD_GEODE_ROBOT);
-//   }
+            case Decisions.BUILD_CLAY_ROBOT: {
+              decisionState[Robots.CLAY + 4]++;
 
-//   return decisions.reverse();
-// }
+              decisionState[Resources.ORE] -=
+                blueprint[Resources.CLAY][Resources.ORE];
 
-function getMaxGeodeCountBackwards(blueprint: Blueprint, timeLimit: number) {
-  let maxGeodeCount = 0;
+              break;
+            }
 
-  while (isGeodeCountAchievable(blueprint, timeLimit, maxGeodeCount + 1)) {
-    maxGeodeCount++;
+            case Decisions.BUILD_OBSIDIAN_ROBOT: {
+              decisionState[Robots.OBSIDIAN + 4]++;
+
+              decisionState[Resources.ORE] -=
+                blueprint[Resources.OBSIDIAN][Resources.ORE];
+              decisionState[Resources.CLAY] -=
+                blueprint[Resources.OBSIDIAN][Resources.CLAY];
+
+              break;
+            }
+
+            case Decisions.BUILD_GEODE_ROBOT: {
+              decisionState[Robots.GEODE + 4]++;
+
+              decisionState[Resources.ORE] -=
+                blueprint[Resources.GEODE][Resources.ORE];
+              decisionState[Resources.OBSIDIAN] -=
+                blueprint[Resources.GEODE][Resources.OBSIDIAN];
+
+              break;
+            }
+          }
+
+          if (!workingStates.has(decisionState[Resources.GEODE])) {
+            workingStates.set(
+              decisionState[Resources.GEODE],
+              new Set<string>()
+            );
+          }
+
+          workingStates
+            .get(decisionState[Resources.GEODE])!
+            .add(toKey(decisionState));
+        }
+      }
+    }
+
+    const maxGeodeCount = Math.max(...workingStates.keys());
+
+    states = new Map<number, Set<string>>(
+      [...workingStates.entries()].filter(
+        ([geodeCount]) => geodeCount > maxGeodeCount - 3
+      )
+    );
+
+    console.log(
+      i,
+      [...states.entries()].map(
+        ([geodeCount, keys]) => `${geodeCount} | ${keys.size}`
+      )
+    );
   }
 
-  return maxGeodeCount;
+  return Math.max(...states.keys());
 }
 
-function isGeodeCountAchievable(
-  blueprint: Blueprint,
-  timeLimit: number,
-  geodeCount: number
-) {
-  return false;
+function getPossibleDecisions(blueprint: Blueprint, state: State) {
+  const decisions = [Decisions.WAIT];
+
+  // NOTE - Ore
+
+  if (state[Resources.ORE] >= blueprint[Resources.ORE][Resources.ORE]) {
+    decisions.push(Decisions.BUILD_ORE_ROBOT);
+  }
+
+  // NOTE - Clay
+
+  if (state[Resources.ORE] >= blueprint[Resources.CLAY][Resources.ORE]) {
+    decisions.push(Decisions.BUILD_CLAY_ROBOT);
+  }
+
+  // NOTE - Obsidian
+
+  if (
+    state[Resources.ORE] >= blueprint[Resources.OBSIDIAN][Resources.ORE] &&
+    state[Resources.CLAY] >= blueprint[Resources.OBSIDIAN][Resources.CLAY]
+  ) {
+    decisions.push(Decisions.BUILD_OBSIDIAN_ROBOT);
+  }
+
+  // NOTE - Geode
+
+  if (
+    state[Resources.ORE] >= blueprint[Resources.GEODE][Resources.ORE] &&
+    state[Resources.OBSIDIAN] >= blueprint[Resources.GEODE][Resources.OBSIDIAN]
+  ) {
+    decisions.push(Decisions.BUILD_GEODE_ROBOT);
+  }
+
+  return decisions;
+}
+
+function toKey(state: State) {
+  return state.join("|");
+}
+
+function fromKey(key: string) {
+  return key.split("|").map(Number);
 }
