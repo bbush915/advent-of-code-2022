@@ -1,426 +1,354 @@
 import fs from "fs";
-import { clone } from "./utils/common";
-import { Segment } from "./utils/geometry";
 
-enum Facing {
+import { clone } from "./utils/common";
+import { Segment as Edge } from "./utils/geometry";
+
+type Notes = {
+  map: Tile[][];
+  instructions: Instruction[];
+};
+
+type Tile = " " | "." | "#";
+
+type Instruction = number | "L" | "R";
+
+type Position = {
+  x: number;
+  y: number;
+  facing: Directions;
+};
+
+type WrapStrategy = (
+  map: Tile[][],
+  x: number,
+  y: number,
+  facing: Directions
+) => Position;
+
+enum Directions {
   RIGHT,
   DOWN,
   LEFT,
   UP,
 }
 
-function parseInput() {
+// NOTE - Hardcoded edges and mapping.
+
+const EDGES: Edge[] = [
+  { a: { x: 0, y: 50 }, b: { x: 0, y: 99 } },
+  { a: { x: 0, y: 100 }, b: { x: 0, y: 149 } },
+  { a: { x: 0, y: 50 }, b: { x: 49, y: 50 } },
+  { a: { x: 0, y: 149 }, b: { x: 49, y: 149 } },
+  { a: { x: 49, y: 100 }, b: { x: 49, y: 149 } },
+  { a: { x: 50, y: 50 }, b: { x: 99, y: 50 } },
+  { a: { x: 50, y: 99 }, b: { x: 99, y: 99 } },
+  { a: { x: 100, y: 0 }, b: { x: 100, y: 49 } },
+  { a: { x: 100, y: 0 }, b: { x: 149, y: 0 } },
+  { a: { x: 100, y: 99 }, b: { x: 149, y: 99 } },
+  { a: { x: 149, y: 50 }, b: { x: 149, y: 99 } },
+  { a: { x: 150, y: 0 }, b: { x: 199, y: 0 } },
+  { a: { x: 150, y: 49 }, b: { x: 199, y: 49 } },
+  { a: { x: 199, y: 0 }, b: { x: 199, y: 49 } },
+];
+
+const EDGE_WRAPPING: Record<number, [number, Directions, Directions, boolean]> =
+  {
+    0: [11, Directions.UP, Directions.RIGHT, false],
+    1: [13, Directions.UP, Directions.UP, false],
+    2: [8, Directions.LEFT, Directions.RIGHT, true],
+    3: [9, Directions.RIGHT, Directions.LEFT, true],
+    4: [6, Directions.DOWN, Directions.LEFT, false],
+    5: [7, Directions.LEFT, Directions.DOWN, false],
+    6: [4, Directions.RIGHT, Directions.UP, false],
+    7: [5, Directions.UP, Directions.RIGHT, false],
+    8: [2, Directions.LEFT, Directions.RIGHT, true],
+    9: [3, Directions.RIGHT, Directions.LEFT, true],
+    10: [12, Directions.DOWN, Directions.LEFT, false],
+    11: [0, Directions.LEFT, Directions.DOWN, false],
+    12: [10, Directions.RIGHT, Directions.UP, false],
+    13: [1, Directions.DOWN, Directions.DOWN, false],
+  };
+
+function parseInput(): Notes {
   const parts = fs
     .readFileSync("src/day.22.input.txt")
     .toString()
     .split("\n\n");
 
-  const lines = parts[0].split("\n");
+  const map = parseMap(parts[0]);
 
-  const width = lines[0].length;
-  const height = lines.length;
-
-  const map = [...new Array(height)].map(() => new Array(width).fill(" "));
-
-  for (let i = 0; i < lines.length; i++) {
-    for (let j = 0; j < lines[i].length; j++) {
-      map[i][j] = lines[i][j];
-    }
-  }
-
-  const directions = parts[1]
+  const instructions = parts[1]
     .match(/\d+|[LR]/g)!
-    .map((x, i) => (i % 2 === 0 ? Number(x) : x));
+    .map((x, i) => (i % 2 === 0 ? Number(x) : x) as Instruction);
 
   return {
     map,
-    directions,
+    instructions,
   };
+}
+
+function parseMap(part: string) {
+  const lines = part.split("\n");
+
+  // NOTE - Lines are not padded to the full width, so we do that here.
+
+  const height = lines.length;
+  const width = lines[0].length;
+
+  const map = [...new Array<Tile>(height)].map(() =>
+    new Array<Tile>(width).fill(" ")
+  );
+
+  for (let i = 0; i < lines.length; i++) {
+    for (let j = 0; j < lines[i].length; j++) {
+      map[i][j] = lines[i][j] as Tile;
+    }
+  }
+
+  return map;
 }
 
 export function part1() {
-  const input = parseInput();
-  const output = clone(input.map);
+  const notes = parseInput();
+  const finalPosition = executeInstructions(notes, flatWrappingStrategy);
 
-  let x = 0;
-  let y = input.map[0].findIndex((x) => x !== " ");
-  let facing = Facing.RIGHT;
-
-  apply(output, x, y, facing);
-
-  for (const direction of input.directions) {
-    if (typeof direction === "number") {
-      outer: for (let n = 0; n < direction; n++) {
-        switch (facing) {
-          case Facing.RIGHT: {
-            let newY = y + 1;
-
-            if (newY > input.map[x].length - 1 || input.map[x][newY] === " ") {
-              for (let m = 0; m < y; m++) {
-                if (input.map[x][m] !== " ") {
-                  newY = m;
-                  break;
-                }
-              }
-            }
-
-            if (input.map[x][newY] === "#") {
-              break outer;
-            }
-
-            y = newY;
-
-            break;
-          }
-
-          case Facing.LEFT: {
-            let newY = y - 1;
-
-            if (newY < 0 || input.map[x][newY] === " ") {
-              for (let m = input.map[x].length - 1; m > y; m--) {
-                if (input.map[x][m] !== " ") {
-                  newY = m;
-                  break;
-                }
-              }
-            }
-
-            if (input.map[x][newY] === "#") {
-              break outer;
-            }
-
-            y = newY;
-
-            break;
-          }
-
-          case Facing.DOWN: {
-            let newX = x + 1;
-
-            if (newX > input.map.length - 1 || input.map[newX][y] === " ") {
-              for (let m = 0; m < x; m++) {
-                if (input.map[m][y] !== " ") {
-                  newX = m;
-                  break;
-                }
-              }
-            }
-
-            if (input.map[newX][y] === "#") {
-              break outer;
-            }
-
-            x = newX;
-
-            break;
-          }
-
-          case Facing.UP: {
-            let newX = x - 1;
-
-            if (newX < 0 || input.map[newX][y] === " ") {
-              for (let m = input.map.length - 1; m > x; m--) {
-                if (input.map[m][y] !== " ") {
-                  newX = m;
-                  break;
-                }
-              }
-            }
-
-            if (input.map[newX][y] === "#") {
-              break outer;
-            }
-
-            x = newX;
-
-            break;
-          }
-        }
-
-        apply(output, x, y, facing);
-      }
-    } else {
-      facing = (facing + (direction === "R" ? 1 : 3)) % 4;
-      apply(output, x, y, facing);
-    }
-  }
-
-  return 1000 * (x + 1) + 4 * (y + 1) + facing;
+  return getPassword(finalPosition);
 }
 
-function apply(output: string[][], x: number, y: number, facing: Facing) {
-  switch (facing) {
-    case Facing.RIGHT: {
-      output[x][y] = ">";
-      break;
-    }
-
-    case Facing.LEFT: {
-      output[x][y] = "<";
-      break;
-    }
-
-    case Facing.UP: {
-      output[x][y] = "^";
-      break;
-    }
-
-    case Facing.DOWN: {
-      output[x][y] = "v";
-      break;
-    }
-  }
-}
 export function part2() {
-  const input = parseInput();
+  const notes = parseInput();
+  const finalPosition = executeInstructions(notes, cubeWrappingStrategy);
 
-  const edges: Segment[] = [
-    { a: { x: 0, y: 50 }, b: { x: 0, y: 99 } }, // 0
-    { a: { x: 0, y: 100 }, b: { x: 0, y: 149 } }, // 1
-    { a: { x: 0, y: 50 }, b: { x: 49, y: 50 } }, // 2
-    { a: { x: 0, y: 149 }, b: { x: 49, y: 149 } }, // 3
-    { a: { x: 49, y: 100 }, b: { x: 49, y: 149 } }, // 4
-    { a: { x: 50, y: 50 }, b: { x: 99, y: 50 } }, // 5
-    { a: { x: 50, y: 99 }, b: { x: 99, y: 99 } }, // 6
-    { a: { x: 100, y: 0 }, b: { x: 100, y: 49 } }, // 7
-    { a: { x: 100, y: 0 }, b: { x: 149, y: 0 } }, // 8
-    { a: { x: 100, y: 99 }, b: { x: 149, y: 99 } }, // 9
-    { a: { x: 149, y: 50 }, b: { x: 149, y: 99 } }, // 10
-    { a: { x: 150, y: 0 }, b: { x: 199, y: 0 } }, // 11
-    { a: { x: 150, y: 49 }, b: { x: 199, y: 49 } }, // 12
-    { a: { x: 199, y: 0 }, b: { x: 199, y: 49 } }, // 13
-  ];
-
-  const edgeMapping: Record<number, [number, Facing, Facing, boolean]> = {
-    0: [11, Facing.UP, Facing.RIGHT, false],
-    11: [0, Facing.LEFT, Facing.DOWN, false],
-
-    1: [13, Facing.UP, Facing.UP, false],
-    13: [1, Facing.DOWN, Facing.DOWN, false],
-
-    2: [8, Facing.LEFT, Facing.RIGHT, true],
-    8: [2, Facing.LEFT, Facing.RIGHT, true],
-
-    3: [9, Facing.RIGHT, Facing.LEFT, true],
-    9: [3, Facing.RIGHT, Facing.LEFT, true],
-
-    4: [6, Facing.DOWN, Facing.LEFT, false],
-    6: [4, Facing.RIGHT, Facing.UP, false],
-
-    5: [7, Facing.LEFT, Facing.DOWN, false],
-    7: [5, Facing.UP, Facing.RIGHT, false],
-
-    10: [12, Facing.DOWN, Facing.LEFT, false],
-    12: [10, Facing.RIGHT, Facing.UP, false],
-  };
-
-  let x = 0;
-  let y = input.map[0].findIndex((x) => x !== " ");
-  let facing = Facing.RIGHT;
-
-  for (const direction of input.directions) {
-    const output = clone(input.map);
-
-    if (typeof direction === "number") {
-      outer: for (let n = 0; n < direction; n++) {
-        switch (facing) {
-          case Facing.RIGHT: {
-            let newX = x;
-            let newY = y + 1;
-            let newFacing: Facing = facing;
-
-            if (newY > input.map[x].length - 1 || input.map[x][newY] === " ") {
-              const currentEdgeIndex = getMatchingEdges(
-                edges,
-                edgeMapping,
-                x,
-                y,
-                facing
-              );
-              const currentEdge = edges[currentEdgeIndex];
-
-              const mappedEdge = edgeMapping[currentEdgeIndex];
-
-              if (mappedEdge) {
-                const [index, from, to, reverse] = mappedEdge;
-                const newEdge = edges[index];
-
-                const t = reverse ? currentEdge.b.x - x : x - currentEdge.a.x;
-
-                const isHorizontal = newEdge.b.x - newEdge.a.x === 0;
-
-                newX = newEdge.a.x + (isHorizontal ? 0 : t);
-                newY = newEdge.a.y + (isHorizontal ? t : 0);
-                newFacing = to;
-              }
-            }
-
-            if (input.map[newX][newY] === "#") {
-              break outer;
-            }
-
-            x = newX;
-            y = newY;
-            facing = newFacing;
-
-            break;
-          }
-
-          case Facing.LEFT: {
-            let newX = x;
-            let newY = y - 1;
-            let newFacing: Facing = facing;
-
-            if (newY < 0 || input.map[x][newY] === " ") {
-              const currentEdgeIndex = getMatchingEdges(
-                edges,
-                edgeMapping,
-                x,
-                y,
-                facing
-              );
-              const currentEdge = edges[currentEdgeIndex];
-
-              const mappedEdge = edgeMapping[currentEdgeIndex];
-
-              if (mappedEdge) {
-                const [index, from, to, reverse] = mappedEdge;
-                const newEdge = edges[index];
-
-                const t = reverse ? currentEdge.b.x - x : x - currentEdge.a.x;
-                const isHorizontal = newEdge.b.x - newEdge.a.x === 0;
-
-                newX = newEdge.a.x + (isHorizontal ? 0 : t);
-                newY = newEdge.a.y + (isHorizontal ? t : 0);
-                newFacing = to;
-              }
-            }
-
-            if (input.map[newX][newY] === "#") {
-              break outer;
-            }
-
-            x = newX;
-            y = newY;
-            facing = newFacing;
-
-            break;
-          }
-
-          case Facing.DOWN: {
-            let newX = x + 1;
-            let newY = y;
-            let newFacing: Facing = facing;
-
-            if (newX > input.map.length - 1 || input.map[newX][y] === " ") {
-              const currentEdgeIndex = getMatchingEdges(
-                edges,
-                edgeMapping,
-                x,
-                y,
-                facing
-              );
-              const currentEdge = edges[currentEdgeIndex];
-
-              const mappedEdge = edgeMapping[currentEdgeIndex];
-
-              if (mappedEdge) {
-                const [index, from, to, reverse] = mappedEdge;
-                const newEdge = edges[index];
-
-                const t = reverse ? currentEdge.b.y - y : y - currentEdge.a.y;
-                const isHorizontal = newEdge.b.x - newEdge.a.x === 0;
-
-                newX = newEdge.a.x + (isHorizontal ? 0 : t);
-                newY = newEdge.a.y + (isHorizontal ? t : 0);
-                newFacing = to;
-              }
-            }
-
-            if (input.map[newX][newY] === "#") {
-              break outer;
-            }
-
-            x = newX;
-            y = newY;
-            facing = newFacing;
-
-            break;
-          }
-
-          case Facing.UP: {
-            let newX = x - 1;
-            let newY = y;
-            let newFacing: Facing = facing;
-
-            if (newX < 0 || input.map[newX][y] === " ") {
-              const currentEdgeIndex = getMatchingEdges(
-                edges,
-                edgeMapping,
-                x,
-                y,
-                facing
-              );
-              const currentEdge = edges[currentEdgeIndex];
-
-              const mappedEdge = edgeMapping[currentEdgeIndex];
-
-              if (mappedEdge) {
-                const [index, from, to, reverse] = mappedEdge;
-                const newEdge = edges[index];
-
-                const t = reverse ? currentEdge.b.y - y : y - currentEdge.a.y;
-                const isHorizontal = newEdge.b.x - newEdge.a.x === 0;
-
-                newX = newEdge.a.x + (isHorizontal ? 0 : t);
-                newY = newEdge.a.y + (isHorizontal ? t : 0);
-                newFacing = to;
-              }
-            }
-
-            if (input.map[newX][newY] === "#") {
-              break outer;
-            }
-
-            x = newX;
-            y = newY;
-            facing = newFacing;
-
-            break;
-          }
-        }
-
-        apply(output, x, y, facing);
-      }
-    } else {
-      facing = (facing + (direction === "R" ? 1 : 3)) % 4;
-      apply(output, x, y, facing);
-    }
-
-    // console.log(output.map((x) => x.join("")).join("\n"));
-  }
-
-  return 1000 * (x + 1) + 4 * (y + 1) + facing;
+  return getPassword(finalPosition);
 }
 
-function getMatchingEdges(
-  edges: Segment[],
-  edgeMapping: Record<number, [number, Facing, Facing, boolean]>,
-  x: number,
-  y: number,
-  facing: Facing
-) {
-  const matchingEdges = edges.filter((edge, i) => {
-    if (edgeMapping[i][1] !== facing) {
+function getEdge({ x, y, facing }: Position) {
+  return EDGES.filter((edge, i) => {
+    // NOTE - We could have multiple matches on corners, so filter by the
+    // direction we are facing.
+
+    if (EDGE_WRAPPING[i][1] !== facing) {
       return false;
     }
+
+    // NOTE - Handle horizontal vs vertical edge.
 
     if (edge.a.x === edge.b.x) {
       return x === edge.a.x && y >= edge.a.y && y <= edge.b.y;
     } else {
       return y === edge.a.y && x >= edge.a.x && x <= edge.b.x;
     }
-  });
+  })[0];
+}
 
-  return edges.findIndex((edge) => edge === matchingEdges[0]);
+function executeInstructions(
+  { map, instructions }: Notes,
+  handleWrap: WrapStrategy
+) {
+  const position = {
+    x: 0,
+    y: map[0].findIndex((x) => x !== " "),
+    facing: Directions.RIGHT,
+  };
+
+  for (const instruction of instructions) {
+    if (typeof instruction === "number") {
+      for (let n = 0; n < instruction; n++) {
+        if (!tryMoveForward(map, position, handleWrap)) {
+          break;
+        }
+      }
+    } else {
+      position.facing = (position.facing + (instruction === "R" ? 1 : 3)) % 4;
+    }
+  }
+
+  return position;
+}
+
+function tryMoveForward(
+  map: Tile[][],
+  position: Position,
+  handleWrap: WrapStrategy
+) {
+  let x = position.x;
+  let y = position.y;
+  let facing = position.facing;
+
+  switch (position.facing) {
+    case Directions.RIGHT: {
+      y += 1;
+
+      if (y > map[x].length - 1 || map[x][y] === " ") {
+        const wrappedPosition = handleWrap(map, x, position.y, facing);
+
+        x = wrappedPosition.x;
+        y = wrappedPosition.y;
+        facing = wrappedPosition.facing;
+      }
+
+      break;
+    }
+
+    case Directions.DOWN: {
+      x += 1;
+
+      if (x > map.length - 1 || map[x][y] === " ") {
+        const wrappedPosition = handleWrap(map, position.x, y, facing);
+
+        x = wrappedPosition.x;
+        y = wrappedPosition.y;
+        facing = wrappedPosition.facing;
+      }
+
+      break;
+    }
+
+    case Directions.LEFT: {
+      y -= 1;
+
+      if (y < 0 || map[x][y] === " ") {
+        const wrappedPosition = handleWrap(map, x, position.y, facing);
+
+        x = wrappedPosition.x;
+        y = wrappedPosition.y;
+        facing = wrappedPosition.facing;
+      }
+
+      break;
+    }
+
+    case Directions.UP: {
+      x -= 1;
+
+      if (x < 0 || map[x][y] === " ") {
+        const wrappedPosition = handleWrap(map, position.x, y, facing);
+
+        x = wrappedPosition.x;
+        y = wrappedPosition.y;
+        facing = wrappedPosition.facing;
+      }
+
+      break;
+    }
+  }
+
+  if (map[x][y] === "#") {
+    return false;
+  }
+
+  position.x = x;
+  position.y = y;
+  position.facing = facing;
+
+  return true;
+}
+
+function flatWrappingStrategy(
+  map: Tile[][],
+  x: number,
+  y: number,
+  facing: Directions
+) {
+  let wrappedPosition: Position = {
+    x,
+    y,
+    facing,
+  };
+
+  switch (facing) {
+    case Directions.RIGHT: {
+      for (let n = 0; n < y; n++) {
+        if (map[x][n] !== " ") {
+          wrappedPosition.y = n;
+          break;
+        }
+      }
+
+      break;
+    }
+
+    case Directions.DOWN: {
+      for (let n = 0; n < x; n++) {
+        if (map[n][y] !== " ") {
+          wrappedPosition.x = n;
+          break;
+        }
+      }
+
+      break;
+    }
+
+    case Directions.LEFT: {
+      for (let n = map[x].length - 1; n > y; n--) {
+        if (map[x][n] !== " ") {
+          wrappedPosition.y = n;
+          break;
+        }
+      }
+
+      break;
+    }
+
+    case Directions.UP: {
+      for (let n = map.length - 1; n > x; n--) {
+        if (map[n][y] !== " ") {
+          wrappedPosition.x = n;
+          break;
+        }
+      }
+
+      break;
+    }
+  }
+
+  return wrappedPosition;
+}
+
+function cubeWrappingStrategy(
+  _map: Tile[][],
+  x: number,
+  y: number,
+  facing: Directions
+) {
+  let wrappedPosition: Position = {
+    x,
+    y,
+    facing,
+  };
+
+  const edge = getEdge(wrappedPosition);
+
+  const edgeWrapping = EDGE_WRAPPING[EDGES.indexOf(edge)];
+  const [edgeIndex, , to, reverse] = edgeWrapping;
+
+  const wrappedEdge = EDGES[edgeIndex];
+
+  let t: number;
+
+  switch (facing) {
+    case Directions.RIGHT:
+    case Directions.LEFT: {
+      t = reverse ? edge.b.x - x : x - edge.a.x;
+      break;
+    }
+
+    case Directions.UP:
+    case Directions.DOWN: {
+      t = reverse ? edge.b.y - y : y - edge.a.y;
+      break;
+    }
+  }
+
+  const isHorizontal = wrappedEdge.b.x - wrappedEdge.a.x === 0;
+
+  wrappedPosition.x = wrappedEdge.a.x + (isHorizontal ? 0 : t);
+  wrappedPosition.y = wrappedEdge.a.y + (isHorizontal ? t : 0);
+  wrappedPosition.facing = to;
+
+  return wrappedPosition;
+}
+
+function getPassword({ x, y, facing }: Position) {
+  return 1000 * (x + 1) + 4 * (y + 1) + facing;
 }
