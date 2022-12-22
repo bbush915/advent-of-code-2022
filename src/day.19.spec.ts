@@ -35,7 +35,7 @@ describe.skip("Day 19", function () {
 
     it("should calculate the correct answer for the challenge", function () {
       const answer = part2();
-      expect(answer).toBe(0);
+      expect(answer).toBe(6840);
     });
   });
 });
