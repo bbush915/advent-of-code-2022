@@ -17,7 +17,7 @@ type Position = {
   facing: Directions;
 };
 
-type WrapStrategy = (
+type WrappingStrategy = (
   map: Tile[][],
   x: number,
   y: number,
@@ -142,7 +142,7 @@ function getEdge({ x, y, facing }: Position) {
 
 function executeInstructions(
   { map, instructions }: Notes,
-  handleWrap: WrapStrategy
+  handleWrap: WrappingStrategy
 ) {
   const position = {
     x: 0,
@@ -168,7 +168,7 @@ function executeInstructions(
 function tryMoveForward(
   map: Tile[][],
   position: Position,
-  handleWrap: WrapStrategy
+  handleWrap: WrappingStrategy
 ) {
   let x = position.x;
   let y = position.y;
