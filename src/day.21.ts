@@ -1,6 +1,6 @@
 import fs from "fs";
 
-import { Node } from "./utils/common";
+import { BinaryNode } from "./utils/tree";
 
 type Operation = "+" | "-" | "*" | "/";
 
@@ -42,7 +42,7 @@ function parseInput() {
 function buildMonkeyTree(
   monkey: Monkey,
   monkeyLookup: Map<string, Monkey>
-): Node<Monkey> {
+): BinaryNode<Monkey> {
   if (typeof monkey.job === "number") {
     return {
       left: null,
@@ -75,7 +75,7 @@ export function part2() {
   }
 }
 
-function evaluateMonkey(node: Node<Monkey>): number {
+function evaluateMonkey(node: BinaryNode<Monkey>): number {
   const monkey = node.data;
 
   if (typeof monkey.job === "number") {
@@ -104,7 +104,7 @@ function evaluateMonkey(node: Node<Monkey>): number {
   }
 }
 
-function containsMonkey(node: Node<Monkey>, name: string): boolean {
+function containsMonkey(node: BinaryNode<Monkey>, name: string): boolean {
   const monkey = node.data;
 
   if (typeof monkey.job === "number") {
@@ -115,7 +115,7 @@ function containsMonkey(node: Node<Monkey>, name: string): boolean {
 }
 
 function fixMonkey(
-  { left, right, data: monkey }: Node<Monkey>,
+  { left, right, data: monkey }: BinaryNode<Monkey>,
   name: string,
   result: number
 ): number {
