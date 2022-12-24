@@ -34,20 +34,62 @@ enum Directions {
 // NOTE - Hardcoded edges and mapping.
 
 const EDGES: Edge[] = [
-  { a: { x: 0, y: 50 }, b: { x: 0, y: 99 } },
-  { a: { x: 0, y: 100 }, b: { x: 0, y: 149 } },
-  { a: { x: 0, y: 50 }, b: { x: 49, y: 50 } },
-  { a: { x: 0, y: 149 }, b: { x: 49, y: 149 } },
-  { a: { x: 49, y: 100 }, b: { x: 49, y: 149 } },
-  { a: { x: 50, y: 50 }, b: { x: 99, y: 50 } },
-  { a: { x: 50, y: 99 }, b: { x: 99, y: 99 } },
-  { a: { x: 100, y: 0 }, b: { x: 100, y: 49 } },
-  { a: { x: 100, y: 0 }, b: { x: 149, y: 0 } },
-  { a: { x: 100, y: 99 }, b: { x: 149, y: 99 } },
-  { a: { x: 149, y: 50 }, b: { x: 149, y: 99 } },
-  { a: { x: 150, y: 0 }, b: { x: 199, y: 0 } },
-  { a: { x: 150, y: 49 }, b: { x: 199, y: 49 } },
-  { a: { x: 199, y: 0 }, b: { x: 199, y: 49 } },
+  [
+    { x: 0, y: 50 },
+    { x: 0, y: 99 },
+  ],
+  [
+    { x: 0, y: 100 },
+    { x: 0, y: 149 },
+  ],
+  [
+    { x: 0, y: 50 },
+    { x: 49, y: 50 },
+  ],
+  [
+    { x: 0, y: 149 },
+    { x: 49, y: 149 },
+  ],
+  [
+    { x: 49, y: 100 },
+    { x: 49, y: 149 },
+  ],
+  [
+    { x: 50, y: 50 },
+    { x: 99, y: 50 },
+  ],
+  [
+    { x: 50, y: 99 },
+    { x: 99, y: 99 },
+  ],
+  [
+    { x: 100, y: 0 },
+    { x: 100, y: 49 },
+  ],
+  [
+    { x: 100, y: 0 },
+    { x: 149, y: 0 },
+  ],
+  [
+    { x: 100, y: 99 },
+    { x: 149, y: 99 },
+  ],
+  [
+    { x: 149, y: 50 },
+    { x: 149, y: 99 },
+  ],
+  [
+    { x: 150, y: 0 },
+    { x: 199, y: 0 },
+  ],
+  [
+    { x: 150, y: 49 },
+    { x: 199, y: 49 },
+  ],
+  [
+    { x: 199, y: 0 },
+    { x: 199, y: 49 },
+  ],
 ];
 
 const EDGE_WRAPPING: Record<number, [number, Directions, Directions, boolean]> =
@@ -132,10 +174,10 @@ function getEdge({ x, y, facing }: Position) {
 
     // NOTE - Handle horizontal vs vertical edge.
 
-    if (edge.a.x === edge.b.x) {
-      return x === edge.a.x && y >= edge.a.y && y <= edge.b.y;
+    if (edge[0].x === edge[1].x) {
+      return x === edge[0].x && y >= edge[0].y && y <= edge[1].y;
     } else {
-      return y === edge.a.y && x >= edge.a.x && x <= edge.b.x;
+      return y === edge[0].y && x >= edge[0].x && x <= edge[1].x;
     }
   })[0];
 }
@@ -328,21 +370,21 @@ function cubeWrappingStrategy(
   switch (facing) {
     case Directions.RIGHT:
     case Directions.LEFT: {
-      t = reverse ? edge.b.x - x : x - edge.a.x;
+      t = reverse ? edge[1].x - x : x - edge[0].x;
       break;
     }
 
     case Directions.UP:
     case Directions.DOWN: {
-      t = reverse ? edge.b.y - y : y - edge.a.y;
+      t = reverse ? edge[1].y - y : y - edge[0].y;
       break;
     }
   }
 
-  const isHorizontal = wrappedEdge.b.x - wrappedEdge.a.x === 0;
+  const isHorizontal = wrappedEdge[1].x - wrappedEdge[0].x === 0;
 
-  wrappedPosition.x = wrappedEdge.a.x + (isHorizontal ? 0 : t);
-  wrappedPosition.y = wrappedEdge.a.y + (isHorizontal ? t : 0);
+  wrappedPosition.x = wrappedEdge[0].x + (isHorizontal ? 0 : t);
+  wrappedPosition.y = wrappedEdge[0].y + (isHorizontal ? t : 0);
   wrappedPosition.facing = to;
 
   return wrappedPosition;

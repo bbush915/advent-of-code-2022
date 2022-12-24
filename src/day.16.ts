@@ -1,7 +1,7 @@
 import fs from "fs";
 
 import { cartesian } from "./utils/common";
-import { dijkstra } from "./utils/graph";
+import { search } from "./utils/graph";
 
 type Scan = {
   valveLookup: Map<string, Valve>;
@@ -83,7 +83,7 @@ function parseInput(): Scan {
           distanceLookup.set(valves[j].name, new Map<string, number>());
         }
 
-        const result = dijkstra(
+        const result = search(
           getNeighbors,
           getDistance,
           valve.name,

@@ -1,8 +1,8 @@
-import { dijkstra } from "./graph";
+import { search } from "./graph";
 
 describe("utils", function () {
   describe("graph", function () {
-    describe("dijkstra", function () {
+    describe("search", function () {
       it("correctly computes the shortest path", function () {
         const vertices: Record<string, Record<string, number>> = {
           "0": { "1": 4, "7": 8 },
@@ -27,7 +27,7 @@ describe("utils", function () {
         const source = "0";
         const target = "8";
 
-        const result = dijkstra(getNeighbors, getDistance, source, target);
+        const result = search(getNeighbors, getDistance, source, target);
 
         expect(result.distanceLookup.get("8")).toBe(14);
       });

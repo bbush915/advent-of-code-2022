@@ -1,6 +1,6 @@
 import fs from "fs";
 
-import { Point } from "./utils/geometry";
+import { Interval, Point } from "./utils/geometry";
 
 type Sensor = {
   x: number;
@@ -12,11 +12,6 @@ enum EndpointType {
   START = 1,
   FINISH = -1,
 }
-
-type Interval = {
-  a: number;
-  b: number;
-};
 
 function parseInput(): Sensor[] {
   return fs
@@ -54,7 +49,7 @@ export function part2(size = 4_000_000) {
     const intervals = getIntervals(sensors, y, 0, size);
 
     if (sumIntervals(intervals) < size) {
-      tuningFrequency = 4_000_000 * (intervals[0].b + 1) + y;
+      tuningFrequency = 4_000_000 * (intervals[0][1] + 1) + y;
       break;
     }
   }
@@ -108,7 +103,7 @@ function getIntervals(
     depth += endpointDepths[i][1];
 
     if (depth === 0) {
-      intervals.push({ a: endpointDepths[start!][0], b: endpointDepths[i][0] });
+      intervals.push([endpointDepths[start!][0], endpointDepths[i][0]]);
       start = null;
     } else if (start === null) {
       start = i;
@@ -120,7 +115,7 @@ function getIntervals(
 
 function sumIntervals(intervals: Interval[]) {
   return intervals.reduce(
-    (sum, interval) => sum + (interval.b - interval.a),
+    (sum, interval) => sum + (interval[1] - interval[0]),
     0
   );
 }

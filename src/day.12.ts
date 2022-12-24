@@ -1,6 +1,6 @@
 import fs from "fs";
 
-import { dijkstra } from "./utils/graph";
+import { search } from "./utils/graph";
 
 const LOWEST_ELEVATION = "a".charCodeAt(0);
 const HIGHEST_ELEVATION = "z".charCodeAt(0);
@@ -40,7 +40,7 @@ function parseInput() {
 export function part1() {
   const { heightmap, source, target } = parseInput();
 
-  const result = dijkstra(
+  const result = search(
     curryGetNeighbors(heightmap, false),
     getDistance,
     source,
@@ -53,7 +53,7 @@ export function part1() {
 export function part2() {
   const { heightmap, target } = parseInput();
 
-  const result = dijkstra(
+  const result = search(
     curryGetNeighbors(heightmap, true),
     getDistance,
     target
