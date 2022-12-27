@@ -42,9 +42,9 @@ export function part1() {
 
   const result = search(
     curryGetNeighbors(heightmap, false),
-    getDistance,
     source,
-    target
+    target,
+    getDistance
   );
 
   return result.distanceLookup.get(target);
@@ -55,8 +55,9 @@ export function part2() {
 
   const result = search(
     curryGetNeighbors(heightmap, true),
-    getDistance,
-    target
+    target,
+    undefined,
+    getDistance
   );
 
   let fewestSteps = Number.POSITIVE_INFINITY;

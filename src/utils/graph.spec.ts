@@ -27,7 +27,7 @@ describe("utils", function () {
         const source = "0";
         const target = "8";
 
-        const result = search(getNeighbors, getDistance, source, target);
+        const result = search(getNeighbors, source, target, getDistance);
 
         expect(result.distanceLookup.get("8")).toBe(14);
       });

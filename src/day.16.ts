@@ -85,9 +85,9 @@ function parseInput(): Scan {
 
         const result = search(
           getNeighbors,
-          getDistance,
           valve.name,
-          valves[j].name
+          valves[j].name,
+          getDistance
         );
 
         const distance = result.distanceLookup.get(valves[j].name)!;
